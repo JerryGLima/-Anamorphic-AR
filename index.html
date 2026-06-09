@@ -376,7 +376,8 @@ function drawTopDownPlan(context, viewW, viewH, maxZ, maxW, w_obj, isExport) {
     context.drawImage(activeImg, 0, sy, imgW, sh, dx, dy, sliceW, dh);
   }
 
-  const gridSizeMeters = 0.5;
+  // ── GRELHA MÉTRICA NO CHÃO (Quadrados Reais de 30cm) ──
+  const gridSizeMeters = 0.3; // 30x30 cm
   const gridPx = gridSizeMeters * pixelsPerMeter;
   
   context.strokeStyle = isExport ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.3)';
@@ -391,7 +392,7 @@ function drawTopDownPlan(context, viewW, viewH, maxZ, maxW, w_obj, isExport) {
   for (let i = -numCols; i <= numCols; i++) {
     const x = centerX + (i * gridPx);
     context.beginPath(); context.moveTo(x, baseY - (numRows * gridPx)); context.lineTo(x, baseY + gridPx); context.stroke();
-    if (isExport && i !== 0) context.fillText(Math.abs(i * 0.5) + "m", x, baseY + gridPx + 20);
+    if (isExport && i !== 0) context.fillText(Math.abs(i * gridSizeMeters).toFixed(1) + "m", x, baseY + gridPx + 20);
   }
 
   for (let i = -1; i <= numRows; i++) {
@@ -399,7 +400,7 @@ function drawTopDownPlan(context, viewW, viewH, maxZ, maxW, w_obj, isExport) {
     context.beginPath(); context.moveTo(centerX - (numCols * gridPx), y); context.lineTo(centerX + (numCols * gridPx), y); context.stroke();
     if (isExport && i >= 0) {
       context.textAlign = "right";
-      context.fillText(parseFloat(i * 0.5).toFixed(1) + "m", centerX - (numCols * gridPx) - 10, y + 5);
+      context.fillText(parseFloat(i * gridSizeMeters).toFixed(1) + "m", centerX - (numCols * gridPx) - 10, y + 5);
     }
   }
 
@@ -586,7 +587,7 @@ document.getElementById('snap-btn').addEventListener('click', () => {
   link.href = expCanvas.toDataURL('image/png');
   link.click();
 
-  alert(`Molde exportado com sucesso!\n\nUse a grelha de transferência:\nCada quadrado no papel representa exatamente 50x50 cm no chão real.`);
+  alert(`Molde exportado com sucesso!\n\nUse a grelha de transferência:\nCada quadrado no papel representa exatamente 30x30 cm no chão real.`);
 });
 
 requestAnimationFrame(loop);
