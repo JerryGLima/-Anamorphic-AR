@@ -323,7 +323,7 @@
 </div>
 
 <!-- HINT -->
-<div id="hint">👆 Arraste para mover<br>🔄 Use a Perspectiva 3D para deitar a imagem</div>
+<div id="hint">👆 Arraste para mover<br>🔄 Use a Perspectiva 3D para deitar ou inverter a imagem</div>
 
 <!-- BOTTOM PANEL -->
 <div id="bottom-panel" class="hidden">
@@ -331,8 +331,9 @@
   <!-- O SEGREDO ANAMÓRFICO -->
   <div class="controls-row">
     <div class="slider-group">
-      <label>Perspectiva 3D (Anamórfico) <span id="tilt-val">0%</span></label>
-      <input type="range" id="tilt-slider" min="0" max="95" value="0" step="1">
+      <!-- Atualizado para ir de -95 (inverso) a +95 (normal) -->
+      <label>Perspectiva 3D (Inverter = Negativo) <span id="tilt-val">0%</span></label>
+      <input type="range" id="tilt-slider" min="-95" max="95" value="0" step="1">
     </div>
   </div>
 
@@ -413,7 +414,7 @@ let pos = { x: 0, y: 0 };
 let scale = 1;
 let skewY = 0;
 let rotation = 0;
-let tiltValue = 0; // Novo valor de perspectiva 3D
+let tiltValue = 0; // Valor de perspectiva 3D (-95 a 95)
 let opacity = 0.85;
 let flipped = false;
 let dragging = false;
@@ -458,23 +459,20 @@ function loop() {
   }
 
   if (img) {
-    // Para visualização ao vivo, usamos step = 4 para garantir alta taxa de quadros (FPS)
     drawAnamorphicToContext(ctx, img, pos.x, pos.y, scale, rotation, skewY, tiltValue, false);
   }
   
   requestAnimationFrame(loop);
 }
 
-// ── MOTOR ANAMÓRFICO (PROJEÇÃO DE PERSPECTIVA REAL) ──
+// ── MOTOR ANAMÓRFICO ATUALIZADO (SUPORTA INVERSÃO) ──
 function drawAnamorphicToContext(ctxToDraw, sourceImg, posX, posY, imgScale, rotDeg, skewDeg, tiltPercent, isExport = false) {
   if (!sourceImg) return;
   
   ctxToDraw.save();
-  // Move para a posição e aplica rotação principal
   ctxToDraw.translate(posX, posY);
   ctxToDraw.rotate(rotDeg * Math.PI / 180);
 
-  // Aplica o Skew Horizontal (ajuste de inclinação lateral)
   const skewRad = skewDeg * Math.PI / 180;
   ctxToDraw.transform(1, 0, Math.tan(skewRad), 1, 0, 0);
 
@@ -487,44 +485,40 @@ function drawAnamorphicToContext(ctxToDraw, sourceImg, posX, posY, imgScale, rot
   const w = sourceImg.naturalWidth;
   const h = sourceImg.naturalHeight;
   
-  // Limita a distorção máxima para evitar infinito
   const tiltMax = 0.85; 
-  const factor = (tiltPercent / 100) * tiltMax;
+  // Usa o valor absoluto para calcular o fator de intensidade
+  const factor = (Math.abs(tiltPercent) / 100) * tiltMax;
+  
+  // VERIFICA SE DEVE ESTICAR O TOPO OU A BASE
+  const stretchTop = tiltPercent >= 0; 
 
-  // Em modo exportação, fatia pixel a pixel. Em modo live, fatia a cada 4 pixels para fluidez.
   const step = isExport ? 1 : 4; 
 
-  // 1. Calcula a altura total da imagem DEPOIS de esticada para podermos centralizá-la
   let totalH = 0;
   for (let sy = h - step; sy >= 0; sy -= step) {
-    const pct = (h - sy) / h; 
-    const stretch = 1 / (1 - pct * factor); // A fórmula da perspetiva
+    // Se stretchTop for verdadeiro, pct cresce do topo para a base
+    // Se for falso (inverso), pct cresce da base para o topo
+    const pct = stretchTop ? (h - sy) / h : sy / h; 
+    const stretch = 1 / (1 - pct * factor); 
     totalH += step * stretch * imgScale;
   }
 
-  let currentY = totalH / 2; // Começamos a desenhar pela base (parte mais baixa no canvas)
+  let currentY = totalH / 2; 
 
-  // 2. Fatiamos a imagem horizontalmente e desenhamos de baixo para cima
   for (let sy = h - step; sy >= 0; sy -= step) {
-    const pct = (h - sy) / h;
-    
-    // O grande segredo anamórfico: Quanto mais longe (pct próximo de 1), maior a escala!
+    const pct = stretchTop ? (h - sy) / h : sy / h; 
     const stretch = 1 / (1 - pct * factor);
 
     const sw = w;
     const sh = step;
     
-    // Aplica o esticamento tanto na largura quanto na altura da fatia
     const dw = w * stretch * imgScale;
     const dh = step * stretch * imgScale;
 
-    // Centraliza a fatia horizontalmente
     const dx = -dw / 2;
 
-    // Desenha a fatia esticada no canvas
     ctxToDraw.drawImage(sourceImg, 0, sy, sw, sh, dx, currentY - dh, dw, dh);
     
-    // Sobe o cursor para desenhar a próxima fatia
     currentY -= dh;
   }
 
@@ -657,7 +651,7 @@ fileInput.addEventListener('change', e => {
 
 function showHint() {
   hintEl.style.opacity = '1';
-  setTimeout(() => { hintEl.style.opacity = '0'; }, 3500);
+  setTimeout(() => { hintEl.style.opacity = '0'; }, 4000);
 }
 
 // ── SLIDERS ──
@@ -732,48 +726,48 @@ canvas.addEventListener('touchmove', e => {
   }
 }, { passive: false });
 
-// ── EXPORTAÇÃO INTELIGENTE COM GRELHA (GRID) ──
+// ── EXPORTAÇÃO INTELIGENTE COM GRELHA (GRID) ATUALIZADA ──
 document.getElementById('snap-btn').addEventListener('click', () => {
   if (!img) return;
 
   if (isPaintPreview) {
-    // 1. CALCULAR A CAIXA LIMITE (BOUNDING BOX) PARA EXPORTAÇÃO PERFEITA
     const w = img.naturalWidth;
     const h = img.naturalHeight;
-    const factor = (tiltValue / 100) * 0.85;
+    const factor = (Math.abs(tiltValue) / 100) * 0.85;
+    const stretchTop = tiltValue >= 0;
     
-    // Descobre a altura total distorcida
+    // Calcula a altura distorcida
     let totalH = 0;
     for (let sy = h - 1; sy >= 0; sy -= 1) {
-      const pct = (h - sy) / h;
+      const pct = stretchTop ? (h - sy) / h : sy / h;
       const stretch = 1 / (1 - pct * factor);
       totalH += 1 * stretch * scale;
     }
     
-    // Descobre a largura máxima (que está no topo/longe) e mínima (base)
+    // Calcula a largura dependendo de que lado foi esticado
     const maxStretch = 1 / (1 - factor);
-    const maxW = w * maxStretch * scale;
-    const minW = w * scale;
+    const topW = (stretchTop ? w * maxStretch : w) * scale;
+    const bottomW = (stretchTop ? w : w * maxStretch) * scale;
 
     const rotRad = rotation * Math.PI / 180;
     const skewRad = skewY * Math.PI / 180;
 
-    // Função para simular a rotação e o skew sobre as 4 pontas da imagem final
     function transformPoint(px, py) {
       let x = flipped ? -px : px;
       let y = py;
-      let sx = x + y * Math.tan(skewRad); // Horizontal Skew
+      let sx = x + y * Math.tan(skewRad);
       let sy = y;
-      let rx = sx * Math.cos(rotRad) - sy * Math.sin(rotRad); // Rotation
+      let rx = sx * Math.cos(rotRad) - sy * Math.sin(rotRad);
       let ry = sx * Math.sin(rotRad) + sy * Math.cos(rotRad);
       return { x: rx, y: ry };
     }
 
+    // Calcula a bounding box
     const pts = [
-      transformPoint(-minW/2, totalH/2),   // Fundo-Esquerda
-      transformPoint(minW/2, totalH/2),    // Fundo-Direita
-      transformPoint(-maxW/2, -totalH/2),  // Topo-Esquerda
-      transformPoint(maxW/2, -totalH/2)    // Topo-Direita
+      transformPoint(-bottomW/2, totalH/2),   // Fundo-Esquerda
+      transformPoint(bottomW/2, totalH/2),    // Fundo-Direita
+      transformPoint(-topW/2, -totalH/2),     // Topo-Esquerda
+      transformPoint(topW/2, -totalH/2)       // Topo-Direita
     ];
 
     const minX = Math.min(...pts.map(p => p.x));
@@ -781,12 +775,10 @@ document.getElementById('snap-btn').addEventListener('click', () => {
     const minY = Math.min(...pts.map(p => p.y));
     const maxY = Math.max(...pts.map(p => p.y));
 
-    // Tamanho final do papel (com um pouco de margem extra)
     const padding = 60;
     const expWidth = Math.ceil(maxX - minX) + padding;
     const expHeight = Math.ceil(maxY - minY) + padding;
 
-    // 2. CRIAR O CANVAS DE EXPORTAÇÃO
     const expCanvas = document.createElement('canvas');
     expCanvas.width = expWidth;
     expCanvas.height = expHeight;
@@ -795,14 +787,13 @@ document.getElementById('snap-btn').addEventListener('click', () => {
     eCtx.fillStyle = '#ffffff';
     eCtx.fillRect(0, 0, expWidth, expHeight);
     
-    // Posiciona o centro do desenho perfeitamente no meio do papel
     const posX = -minX + (padding / 2);
     const posY = -minY + (padding / 2);
 
-    // Desenha em altíssima qualidade (step = 1)
+    // Desenha em alta definição (step = 1)
     drawAnamorphicToContext(eCtx, img, posX, posY, scale, rotation, skewY, tiltValue, true);
     
-    // 3. DESENHAR A GRELHA PERFEITA POR CIMA (Para facilitar a transferência para a rua)
+    // Desenha a Grelha
     eCtx.strokeStyle = 'rgba(0, 0, 0, 0.4)';
     eCtx.lineWidth = Math.max(1.5, expWidth / 600);
     
@@ -817,13 +808,12 @@ document.getElementById('snap-btn').addEventListener('click', () => {
     }
     eCtx.strokeRect(0, 0, expWidth, expHeight);
     
-    // Download
     const link = document.createElement('a');
     link.download = 'molde-anamorfico-3d-grelha.png';
     link.href = expCanvas.toDataURL('image/png');
     link.click();
     
-    alert("Molde anamórfico perfeito guardado! A imagem e a grelha foram distorcidas matematicamente para impressão.");
+    alert("Molde anamórfico invertido guardado! A imagem e a grelha foram distorcidas matematicamente para impressão.");
 
   } else {
     // MODO AR: Salva a visão da Câmara normal
