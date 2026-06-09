@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Anamorphic AR Preview</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #0a0a0a;
+    color: #fff;
+    font-family: system-ui, sans-serif;
+    height: 100dvh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── CAMERA LAYER ── */
+  #camera-view {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: 0;
+  }
+
+  /* ── OVERLAY CANVAS ── */
+  #overlay-canvas {
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+    touch-action: none;
+  }
+
+  /* ── UI PANELS ── */
+  #top-bar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.7), transparent);
+  }
+
+  #top-bar h1 {
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    color: #fff;
+  }
+
+  #top-bar .badge {
+    font-size: 11px;
+    background: rgba(255,80,80,0.85);
+    color: #fff;
+    padding: 3px 8px;
+    border-radius: 20px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+  }
+
+  /* ── UPLOAD SCREEN ── */
+  #upload-screen {
+    position: fixed;
+    inset: 0;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: #0e0e0e;
+    gap: 24px;
+    padding: 32px;
+  }
+
+  .logo-mark {
+    width: 72px; height: 72px;
+    background: rgba(255,255,255,0.06);
+    border: 1.5px solid rgba(255,255,255,0.15);
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+  }
+
+  #upload-screen h2 {
+    font-size: 22px;
+    font-weight: 700;
+    text-align: center;
+    letter-spacing: -0.3px;
+  }
+
+  #upload-screen p {
+    font-size: 14px;
+    color: rgba(255,255,255,0.5);
+    text-align: center;
+    line-height: 1.6;
+    max-width: 280px;
+  }
+
+  .upload-btn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #fff;
+    color: #000;
+    border: none;
+    border-radius: 14px;
+    padding: 14px 28px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity .15s;
+  }
+  .upload-btn:active { opacity: 0.8; }
+
+  .upload-btn svg { width: 20px; height: 20px; flex-shrink: 0; }
+
+  #file-input { display: none; }
+
+  /* ── BOTTOM CONTROLS ── */
+  #bottom-panel {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    z-index: 10;
+    padding: 16px 16px 28px;
+    background: linear-gradient(to top, rgba(0,0,0,0.85), transparent);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .controls-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+
+  .slider-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex: 1;
+  }
+
+  .slider-group label {
+    font-size: 11px;
+    color: rgba(255,255,255,0.5);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .slider-group label span {
+    color: rgba(255,255,255,0.85);
+    font-weight: 600;
+  }
+
+  input[type=range] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(255,255,255,0.2);
+    outline: none;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.4);
+    cursor: pointer;
+  }
+
+  .icon-btn {
+    width: 44px; height: 44px;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: #fff;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background .15s;
+    user-select: none;
+  }
+  .icon-btn:active { background: rgba(255,255,255,0.25); }
+
+  .icon-btn svg { width: 20px; height: 20px; pointer-events: none; }
+
+  .action-row {
+    display: flex;
+    gap: 10px;
+  }
+
+  .action-btn {
+    flex: 1;
+    height: 44px;
+    border-radius: 12px;
+    border: none;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity .15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .action-btn:active { opacity: 0.8; }
+
+  .btn-change {
+    background: rgba(255,255,255,0.12);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.2);
+  }
+  .btn-snap {
+    background: #fff;
+    color: #000;
+  }
+
+  /* ── HINT OVERLAY ── */
+  #hint {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 5;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 16px;
+    padding: 16px 20px;
+    font-size: 13px;
+    color: rgba(255,255,255,0.85);
+    text-align: center;
+    pointer-events: none;
+    transition: opacity .4s;
+    max-width: 240px;
+    line-height: 1.5;
+  }
+
+  /* ── NO CAMERA MESSAGE ── */
+  #no-cam {
+    position: fixed;
+    inset: 0;
+    z-index: 2;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: #111;
+    flex-direction: column;
+    gap: 12px;
+    text-align: center;
+    padding: 32px;
+  }
+  #no-cam p { font-size: 14px; color: rgba(255,255,255,0.5); line-height: 1.6; }
+
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<!-- VIDEO STREAM -->
+<video id="camera-view" autoplay playsinline muted></video>
+
+<!-- DRAWING CANVAS -->
+<canvas id="overlay-canvas"></canvas>
+
+<!-- TOP BAR -->
+<div id="top-bar" class="hidden">
+  <h1>🎨 Anamorphic AR</h1>
+  <div class="badge" id="cam-label">CAM AO VIVO</div>
+</div>
+
+<!-- NO CAMERA FALLBACK -->
+<div id="no-cam">
+  <div style="font-size:40px">📷</div>
+  <p>Câmera não encontrada.<br>Use pelo celular ou permita o acesso à câmera no navegador.</p>
+</div>
+
+<!-- UPLOAD SCREEN -->
+<div id="upload-screen">
+  <div class="logo-mark">🎨</div>
+  <h2>Anamorphic AR Preview</h2>
+  <p>Faça upload do seu design PNG e visualize como ficará pintado no chão ou parede usando a câmera.</p>
+  <button class="upload-btn" onclick="document.getElementById('file-input').click()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+      <polyline points="17 8 12 3 7 8"/>
+      <line x1="12" y1="3" x2="12" y2="15"/>
+    </svg>
+    Escolher imagem PNG
+  </button>
+  <input type="file" id="file-input" accept="image/*">
+</div>
+
+<!-- HINT -->
+<div id="hint">👆 Arraste para mover<br>🔄 Use os controles abaixo</div>
+
+<!-- BOTTOM PANEL -->
+<div id="bottom-panel" class="hidden">
+  <div class="controls-row">
+    <div class="slider-group">
+      <label>Escala <span id="scale-val">100%</span></label>
+      <input type="range" id="scale-slider" min="10" max="300" value="100" step="1">
+    </div>
+  </div>
+
+  <div class="controls-row">
+    <div class="slider-group">
+      <label>Perspectiva (skew) <span id="skew-val">0°</span></label>
+      <input type="range" id="skew-slider" min="-70" max="70" value="0" step="1">
+    </div>
+  </div>
+
+  <div class="controls-row">
+    <div class="slider-group">
+      <label>Rotação <span id="rot-val">0°</span></label>
+      <input type="range" id="rot-slider" min="-180" max="180" value="0" step="1">
+    </div>
+    <div class="icon-btn" id="flip-btn" title="Espelhar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M8 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3"/><path d="M16 3h3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-3"/><line x1="12" y1="3" x2="12" y2="21"/>
+      </svg>
+    </div>
+    <div class="icon-btn" id="opacity-btn" title="Opacidade">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 1 0 20z"/>
+      </svg>
+    </div>
+  </div>
+
+  <div class="action-row">
+    <button class="action-btn btn-change" onclick="document.getElementById('file-input').click()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      Trocar imagem
+    </button>
+    <button class="action-btn btn-snap" id="snap-btn">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M9 3h6l2 3h3a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h3z"/></svg>
+      Capturar tela
+    </button>
+  </div>
+</div>
+
+<script>
+const video = document.getElementById('camera-view');
+const canvas = document.getElementById('overlay-canvas');
+const ctx = canvas.getContext('2d');
+const uploadScreen = document.getElementById('upload-screen');
+const bottomPanel = document.getElementById('bottom-panel');
+const topBar = document.getElementById('top-bar');
+const hintEl = document.getElementById('hint');
+const noCam = document.getElementById('no-cam');
+const fileInput = document.getElementById('file-input');
+
+let img = null;
+let pos = { x: 0, y: 0 };
+let scale = 1;
+let skewY = 0;
+let rotation = 0;
+let opacity = 0.85;
+let flipped = false;
+let dragging = false;
+let dragStart = { x: 0, y: 0 };
+let opacityIndex = 0;
+const opacities = [0.85, 0.6, 0.35, 1.0];
+
+// ── CAMERA ──
+async function startCamera() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } },
+      audio: false
+    });
+    video.srcObject = stream;
+    video.onloadedmetadata = () => {
+      resizeCanvas();
+      requestAnimationFrame(loop);
+    };
+  } catch(e) {
+    noCam.style.display = 'flex';
+    console.warn('Camera error:', e);
+  }
+}
+
+function resizeCanvas() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+// ── DRAW LOOP ──
+function loop() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  if (img) drawImage();
+  requestAnimationFrame(loop);
+}
+
+function drawImage() {
+  const w = img.naturalWidth * scale;
+  const h = img.naturalHeight * scale;
+  const skewRad = skewY * Math.PI / 180;
+
+  ctx.save();
+  ctx.globalAlpha = opacity;
+  ctx.translate(pos.x, pos.y);
+  ctx.rotate(rotation * Math.PI / 180);
+
+  // Perspective skew matrix: simulates anamorphic floor projection
+  ctx.transform(1, Math.tan(skewRad), 0, 1 / Math.cos(skewRad), 0, 0);
+
+  if (flipped) {
+    ctx.scale(-1, 1);
+    ctx.drawImage(img, -w / 2, -h / 2, w, h);
+  } else {
+    ctx.drawImage(img, -w / 2, -h / 2, w, h);
+  }
+  ctx.restore();
+}
+
+// ── FILE INPUT ──
+fileInput.addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const image = new Image();
+    image.onload = () => {
+      img = image;
+      pos.x = canvas.width / 2;
+      pos.y = canvas.height / 2;
+      const maxW = canvas.width * 0.65;
+      scale = Math.min(maxW / img.naturalWidth, 1);
+      document.getElementById('scale-slider').value = Math.round(scale * 100);
+      document.getElementById('scale-val').textContent = Math.round(scale * 100) + '%';
+      uploadScreen.classList.add('hidden');
+      bottomPanel.classList.remove('hidden');
+      topBar.classList.remove('hidden');
+      showHint();
+    };
+    image.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+  e.target.value = '';
+});
+
+function showHint() {
+  hintEl.style.opacity = '1';
+  setTimeout(() => { hintEl.style.opacity = '0'; }, 3000);
+}
+
+// ── SLIDERS ──
+document.getElementById('scale-slider').addEventListener('input', e => {
+  scale = e.target.value / 100;
+  document.getElementById('scale-val').textContent = e.target.value + '%';
+});
+document.getElementById('skew-slider').addEventListener('input', e => {
+  skewY = parseInt(e.target.value);
+  document.getElementById('skew-val').textContent = e.target.value + '°';
+});
+document.getElementById('rot-slider').addEventListener('input', e => {
+  rotation = parseInt(e.target.value);
+  document.getElementById('rot-val').textContent = e.target.value + '°';
+});
+
+// ── FLIP ──
+document.getElementById('flip-btn').addEventListener('click', () => {
+  flipped = !flipped;
+});
+
+// ── OPACITY CYCLE ──
+document.getElementById('opacity-btn').addEventListener('click', () => {
+  opacityIndex = (opacityIndex + 1) % opacities.length;
+  opacity = opacities[opacityIndex];
+});
+
+// ── DRAG (touch + mouse) ──
+function getPoint(e) {
+  if (e.touches) return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+  return { x: e.clientX, y: e.clientY };
+}
+
+canvas.addEventListener('pointerdown', e => {
+  if (!img) return;
+  dragging = true;
+  const p = getPoint(e);
+  dragStart = { x: p.x - pos.x, y: p.y - pos.y };
+  canvas.setPointerCapture(e.pointerId);
+});
+canvas.addEventListener('pointermove', e => {
+  if (!dragging) return;
+  const p = getPoint(e);
+  pos.x = p.x - dragStart.x;
+  pos.y = p.y - dragStart.y;
+});
+canvas.addEventListener('pointerup', () => { dragging = false; });
+canvas.addEventListener('pointercancel', () => { dragging = false; });
+
+// Pinch-to-zoom
+let lastDist = 0;
+canvas.addEventListener('touchstart', e => {
+  if (e.touches.length === 2) {
+    lastDist = Math.hypot(
+      e.touches[0].clientX - e.touches[1].clientX,
+      e.touches[0].clientY - e.touches[1].clientY
+    );
+  }
+}, { passive: true });
+canvas.addEventListener('touchmove', e => {
+  if (e.touches.length === 2) {
+    const dist = Math.hypot(
+      e.touches[0].clientX - e.touches[1].clientX,
+      e.touches[0].clientY - e.touches[1].clientY
+    );
+    const delta = dist / lastDist;
+    scale = Math.max(0.05, Math.min(5, scale * delta));
+    const pct = Math.round(scale * 100);
+    document.getElementById('scale-slider').value = Math.min(pct, 300);
+    document.getElementById('scale-val').textContent = pct + '%';
+    lastDist = dist;
+    e.preventDefault();
+  }
+}, { passive: false });
+
+// ── SCREENSHOT ──
+document.getElementById('snap-btn').addEventListener('click', () => {
+  const snap = document.createElement('canvas');
+  snap.width = canvas.width;
+  snap.height = canvas.height;
+  const sctx = snap.getContext('2d');
+  sctx.drawImage(video, 0, 0, snap.width, snap.height);
+  sctx.drawImage(canvas, 0, 0);
+  const link = document.createElement('a');
+  link.download = 'anamorphic-preview.png';
+  link.href = snap.toDataURL('image/png');
+  link.click();
+});
+
+// ── START ──
+startCamera();
+</script>
+</body>
+</html>
