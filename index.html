@@ -10,7 +10,7 @@
   body {
     background: #0a0a0a;
     color: #fff;
-    font-family: system-ui, sans-serif;
+    font-family: system-ui, -apple-system, sans-serif;
     height: 100dvh;
     overflow: hidden;
     display: flex;
@@ -121,9 +121,7 @@
     transition: opacity .15s;
   }
   .upload-btn:active { opacity: 0.8; }
-
   .upload-btn svg { width: 20px; height: 20px; flex-shrink: 0; }
-
   #file-input { display: none; }
 
   /* ── BOTTOM CONTROLS ── */
@@ -132,10 +130,10 @@
     bottom: 0; left: 0; right: 0;
     z-index: 10;
     padding: 16px 16px 28px;
-    background: linear-gradient(to top, rgba(0,0,0,0.85), transparent);
+    background: linear-gradient(to top, rgba(0,0,0,0.85) 40%, transparent);
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 10px;
   }
 
   .controls-row {
@@ -147,13 +145,13 @@
   .slider-group {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 4px;
     flex: 1;
   }
 
   .slider-group label {
-    font-size: 11px;
-    color: rgba(255,255,255,0.5);
+    font-size: 10px;
+    color: rgba(255,255,255,0.6);
     text-transform: uppercase;
     letter-spacing: 0.8px;
     display: flex;
@@ -161,7 +159,7 @@
   }
 
   .slider-group label span {
-    color: rgba(255,255,255,0.85);
+    color: rgba(255,255,255,0.9);
     font-weight: 600;
   }
 
@@ -183,7 +181,7 @@
   }
 
   .icon-btn {
-    width: 44px; height: 44px;
+    width: 42px; height: 42px;
     border-radius: 12px;
     background: rgba(255,255,255,0.12);
     border: 1px solid rgba(255,255,255,0.2);
@@ -198,19 +196,17 @@
     user-select: none;
   }
   .icon-btn:active { transform: scale(0.95); }
-  
-  /* Estado Ativo para os botões de ícone */
   .icon-btn.active {
     background: #0066ff;
     border-color: #0066ff;
     color: #fff;
   }
-
-  .icon-btn svg { width: 20px; height: 20px; pointer-events: none; }
+  .icon-btn svg { width: 18px; height: 18px; pointer-events: none; }
 
   .action-row {
     display: flex;
     gap: 8px;
+    margin-top: 4px;
   }
 
   .action-btn {
@@ -269,9 +265,9 @@
     transition: opacity .4s;
     max-width: 240px;
     line-height: 1.5;
+    opacity: 0;
   }
 
-  /* ── NO CAMERA MESSAGE ── */
   #no-cam {
     position: fixed;
     inset: 0;
@@ -307,14 +303,14 @@
 <!-- NO CAMERA FALLBACK -->
 <div id="no-cam">
   <div style="font-size:40px">📷</div>
-  <p>Câmera não encontrada.<br>Use pelo celular ou permita o acesso à câmera no navegador.</p>
+  <p>Câmera não encontrada ou acesso negado.<br>No preview do navegador, pode ser necessário permitir acesso à câmera ou usar um telemóvel.</p>
 </div>
 
 <!-- UPLOAD SCREEN -->
 <div id="upload-screen">
   <div class="logo-mark">🎨</div>
   <h2>Anamorphic AR Preview</h2>
-  <p>Faça upload do seu design e visualize como ficará pintado no chão usando a câmera.</p>
+  <p>Faça upload do seu design para aplicar a distorção 3D verdadeira e visualizar no chão.</p>
   <button class="upload-btn" onclick="document.getElementById('file-input').click()">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
@@ -327,31 +323,36 @@
 </div>
 
 <!-- HINT -->
-<div id="hint">👆 Arraste para mover<br>🔄 Use os controles abaixo</div>
+<div id="hint">👆 Arraste para mover<br>🔄 Use a Perspectiva 3D para deitar a imagem</div>
 
 <!-- BOTTOM PANEL -->
 <div id="bottom-panel" class="hidden">
+  
+  <!-- O SEGREDO ANAMÓRFICO -->
+  <div class="controls-row">
+    <div class="slider-group">
+      <label>Perspectiva 3D (Anamórfico) <span id="tilt-val">0%</span></label>
+      <input type="range" id="tilt-slider" min="0" max="95" value="0" step="1">
+    </div>
+  </div>
+
   <div class="controls-row">
     <div class="slider-group">
       <label>Escala <span id="scale-val">100%</span></label>
       <input type="range" id="scale-slider" min="10" max="300" value="100" step="1">
     </div>
-  </div>
-
-  <div class="controls-row">
-    <div class="slider-group">
-      <label>Perspectiva (skew) <span id="skew-val">0°</span></label>
-      <input type="range" id="skew-slider" min="-70" max="70" value="0" step="1">
-    </div>
-  </div>
-
-  <div class="controls-row">
     <div class="slider-group">
       <label>Rotação <span id="rot-val">0°</span></label>
       <input type="range" id="rot-slider" min="-180" max="180" value="0" step="1">
     </div>
+  </div>
+
+  <div class="controls-row">
+    <div class="slider-group">
+      <label>Ajuste de Ângulo (Skew) <span id="skew-val">0°</span></label>
+      <input type="range" id="skew-slider" min="-70" max="70" value="0" step="1">
+    </div>
     
-    <!-- BOTÃO DE REMOVER FUNDO -->
     <div class="icon-btn" id="magic-btn" title="Remover Fundo (Automático)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"></path>
@@ -359,7 +360,6 @@
         <path d="m5 11 9 9"></path>
       </svg>
     </div>
-
     <div class="icon-btn" id="flip-btn" title="Espelhar">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M8 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3"/><path d="M16 3h3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-3"/><line x1="12" y1="3" x2="12" y2="21"/>
@@ -413,6 +413,7 @@ let pos = { x: 0, y: 0 };
 let scale = 1;
 let skewY = 0;
 let rotation = 0;
+let tiltValue = 0; // Novo valor de perspectiva 3D
 let opacity = 0.85;
 let flipped = false;
 let dragging = false;
@@ -434,8 +435,10 @@ async function startCamera() {
       requestAnimationFrame(loop);
     };
   } catch(e) {
+    console.warn('Erro ao aceder à câmara:', e);
     noCam.style.display = 'flex';
-    console.warn('Camera error:', e);
+    resizeCanvas();
+    requestAnimationFrame(loop); 
   }
 }
 
@@ -454,11 +457,80 @@ function loop() {
     drawGridScreen();
   }
 
-  if (img) drawImage();
+  if (img) {
+    // Para visualização ao vivo, usamos step = 4 para garantir alta taxa de quadros (FPS)
+    drawAnamorphicToContext(ctx, img, pos.x, pos.y, scale, rotation, skewY, tiltValue, false);
+  }
+  
   requestAnimationFrame(loop);
 }
 
-// Grelha exibida no ecrã do telemóvel (Apenas visualização)
+// ── MOTOR ANAMÓRFICO (PROJEÇÃO DE PERSPECTIVA REAL) ──
+function drawAnamorphicToContext(ctxToDraw, sourceImg, posX, posY, imgScale, rotDeg, skewDeg, tiltPercent, isExport = false) {
+  if (!sourceImg) return;
+  
+  ctxToDraw.save();
+  // Move para a posição e aplica rotação principal
+  ctxToDraw.translate(posX, posY);
+  ctxToDraw.rotate(rotDeg * Math.PI / 180);
+
+  // Aplica o Skew Horizontal (ajuste de inclinação lateral)
+  const skewRad = skewDeg * Math.PI / 180;
+  ctxToDraw.transform(1, 0, Math.tan(skewRad), 1, 0, 0);
+
+  if (flipped) {
+    ctxToDraw.scale(-1, 1);
+  }
+
+  ctxToDraw.globalAlpha = isPaintPreview ? 1.0 : opacity;
+
+  const w = sourceImg.naturalWidth;
+  const h = sourceImg.naturalHeight;
+  
+  // Limita a distorção máxima para evitar infinito
+  const tiltMax = 0.85; 
+  const factor = (tiltPercent / 100) * tiltMax;
+
+  // Em modo exportação, fatia pixel a pixel. Em modo live, fatia a cada 4 pixels para fluidez.
+  const step = isExport ? 1 : 4; 
+
+  // 1. Calcula a altura total da imagem DEPOIS de esticada para podermos centralizá-la
+  let totalH = 0;
+  for (let sy = h - step; sy >= 0; sy -= step) {
+    const pct = (h - sy) / h; 
+    const stretch = 1 / (1 - pct * factor); // A fórmula da perspetiva
+    totalH += step * stretch * imgScale;
+  }
+
+  let currentY = totalH / 2; // Começamos a desenhar pela base (parte mais baixa no canvas)
+
+  // 2. Fatiamos a imagem horizontalmente e desenhamos de baixo para cima
+  for (let sy = h - step; sy >= 0; sy -= step) {
+    const pct = (h - sy) / h;
+    
+    // O grande segredo anamórfico: Quanto mais longe (pct próximo de 1), maior a escala!
+    const stretch = 1 / (1 - pct * factor);
+
+    const sw = w;
+    const sh = step;
+    
+    // Aplica o esticamento tanto na largura quanto na altura da fatia
+    const dw = w * stretch * imgScale;
+    const dh = step * stretch * imgScale;
+
+    // Centraliza a fatia horizontalmente
+    const dx = -dw / 2;
+
+    // Desenha a fatia esticada no canvas
+    ctxToDraw.drawImage(sourceImg, 0, sy, sw, sh, dx, currentY - dh, dw, dh);
+    
+    // Sobe o cursor para desenhar a próxima fatia
+    currentY -= dh;
+  }
+
+  ctxToDraw.restore();
+}
+
 function drawGridScreen() {
   ctx.fillStyle = '#f0f0f0';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -478,27 +550,6 @@ function drawGridScreen() {
   ctx.lineWidth = 1.5;
   ctx.beginPath(); ctx.moveTo(canvas.width/2, 0); ctx.lineTo(canvas.width/2, canvas.height); ctx.stroke();
   ctx.beginPath(); ctx.moveTo(0, canvas.height/2); ctx.lineTo(canvas.width, canvas.height/2); ctx.stroke();
-}
-
-function drawImage() {
-  const w = img.naturalWidth * scale;
-  const h = img.naturalHeight * scale;
-  const skewRad = skewY * Math.PI / 180;
-
-  ctx.save();
-  ctx.globalAlpha = isPaintPreview ? 1.0 : opacity; 
-  ctx.translate(pos.x, pos.y);
-  ctx.rotate(rotation * Math.PI / 180);
-
-  ctx.transform(1, Math.tan(skewRad), 0, 1 / Math.cos(skewRad), 0, 0);
-
-  if (flipped) {
-    ctx.scale(-1, 1);
-    ctx.drawImage(img, -w / 2, -h / 2, w, h);
-  } else {
-    ctx.drawImage(img, -w / 2, -h / 2, w, h);
-  }
-  ctx.restore();
 }
 
 // ── REMOÇÃO INTELIGENTE DE FUNDO ──
@@ -538,7 +589,6 @@ function processBackgroundRemoval(imgSource) {
 
 magicBtn.addEventListener('click', async function() {
   if (!originalImg) return;
-  
   if (isBgRemoved) {
     isBgRemoved = false;
     img = originalImg;
@@ -562,7 +612,7 @@ previewBtn.addEventListener('click', () => {
     previewBtn.classList.add('active');
     camLabel.textContent = 'MOLDE 2D';
     camLabel.style.background = '#0066ff';
-    snapLabel.textContent = 'Imprimir'; // Atualiza nome do botão de salvar
+    snapLabel.textContent = 'Imprimir';
   } else {
     video.style.opacity = '1';
     previewBtn.classList.remove('active');
@@ -596,6 +646,7 @@ fileInput.addEventListener('change', e => {
       uploadScreen.classList.add('hidden');
       bottomPanel.classList.remove('hidden');
       topBar.classList.remove('hidden');
+      noCam.style.display = 'none'; 
       showHint();
     };
     image.src = ev.target.result;
@@ -606,10 +657,14 @@ fileInput.addEventListener('change', e => {
 
 function showHint() {
   hintEl.style.opacity = '1';
-  setTimeout(() => { hintEl.style.opacity = '0'; }, 3000);
+  setTimeout(() => { hintEl.style.opacity = '0'; }, 3500);
 }
 
 // ── SLIDERS ──
+document.getElementById('tilt-slider').addEventListener('input', e => {
+  tiltValue = parseInt(e.target.value);
+  document.getElementById('tilt-val').textContent = e.target.value + '%';
+});
 document.getElementById('scale-slider').addEventListener('input', e => {
   scale = e.target.value / 100;
   document.getElementById('scale-val').textContent = e.target.value + '%';
@@ -682,108 +737,108 @@ document.getElementById('snap-btn').addEventListener('click', () => {
   if (!img) return;
 
   if (isPaintPreview) {
-    // MODO MOLDE: Exporta o desenho distorcido e desenha a grelha de transferência por cima
+    // 1. CALCULAR A CAIXA LIMITE (BOUNDING BOX) PARA EXPORTAÇÃO PERFEITA
     const w = img.naturalWidth;
     const h = img.naturalHeight;
-    const skewRad = skewY * Math.PI / 180;
-    const rotRad = rotation * Math.PI / 180;
+    const factor = (tiltValue / 100) * 0.85;
     
-    // Função matemática para calcular a "Caixa" (Bounding Box) do desenho distorcido
-    function transform(px, py) {
-        let x = flipped ? -px : px;
-        let y = py;
-        let sx = x;
-        let sy = x * Math.tan(skewRad) + y / Math.cos(skewRad);
-        let rx = sx * Math.cos(rotRad) - sy * Math.sin(rotRad);
-        let ry = sx * Math.sin(rotRad) + sy * Math.cos(rotRad);
-        return { x: rx, y: ry };
+    // Descobre a altura total distorcida
+    let totalH = 0;
+    for (let sy = h - 1; sy >= 0; sy -= 1) {
+      const pct = (h - sy) / h;
+      const stretch = 1 / (1 - pct * factor);
+      totalH += 1 * stretch * scale;
     }
     
-    // Calcula os 4 cantos da imagem após a distorção
+    // Descobre a largura máxima (que está no topo/longe) e mínima (base)
+    const maxStretch = 1 / (1 - factor);
+    const maxW = w * maxStretch * scale;
+    const minW = w * scale;
+
+    const rotRad = rotation * Math.PI / 180;
+    const skewRad = skewY * Math.PI / 180;
+
+    // Função para simular a rotação e o skew sobre as 4 pontas da imagem final
+    function transformPoint(px, py) {
+      let x = flipped ? -px : px;
+      let y = py;
+      let sx = x + y * Math.tan(skewRad); // Horizontal Skew
+      let sy = y;
+      let rx = sx * Math.cos(rotRad) - sy * Math.sin(rotRad); // Rotation
+      let ry = sx * Math.sin(rotRad) + sy * Math.cos(rotRad);
+      return { x: rx, y: ry };
+    }
+
     const pts = [
-        transform(-w/2, -h/2),
-        transform(w/2, -h/2),
-        transform(-w/2, h/2),
-        transform(w/2, h/2)
+      transformPoint(-minW/2, totalH/2),   // Fundo-Esquerda
+      transformPoint(minW/2, totalH/2),    // Fundo-Direita
+      transformPoint(-maxW/2, -totalH/2),  // Topo-Esquerda
+      transformPoint(maxW/2, -totalH/2)    // Topo-Direita
     ];
-    
-    // Encontra o tamanho exato necessário para a folha
+
     const minX = Math.min(...pts.map(p => p.x));
     const maxX = Math.max(...pts.map(p => p.x));
     const minY = Math.min(...pts.map(p => p.y));
     const maxY = Math.max(...pts.map(p => p.y));
-    
-    const expWidth = Math.ceil(maxX - minX);
-    const expHeight = Math.ceil(maxY - minY);
-    
-    // Cria um canvas temporário exatamente do tamanho da distorção
+
+    // Tamanho final do papel (com um pouco de margem extra)
+    const padding = 60;
+    const expWidth = Math.ceil(maxX - minX) + padding;
+    const expHeight = Math.ceil(maxY - minY) + padding;
+
+    // 2. CRIAR O CANVAS DE EXPORTAÇÃO
     const expCanvas = document.createElement('canvas');
     expCanvas.width = expWidth;
     expCanvas.height = expHeight;
     const eCtx = expCanvas.getContext('2d');
     
-    // 1. Fundo branco limpo
     eCtx.fillStyle = '#ffffff';
     eCtx.fillRect(0, 0, expWidth, expHeight);
     
-    eCtx.save(); // Salva o contexto antes de distorcer
+    // Posiciona o centro do desenho perfeitamente no meio do papel
+    const posX = -minX + (padding / 2);
+    const posY = -minY + (padding / 2);
+
+    // Desenha em altíssima qualidade (step = 1)
+    drawAnamorphicToContext(eCtx, img, posX, posY, scale, rotation, skewY, tiltValue, true);
     
-    // 2. Move o centro e aplica as matrizes de distorção anamórfica
-    eCtx.translate(-minX, -minY);
-    eCtx.rotate(rotRad);
-    eCtx.transform(1, Math.tan(skewRad), 0, 1 / Math.cos(skewRad), 0, 0);
-    if (flipped) {
-        eCtx.scale(-1, 1);
-    }
+    // 3. DESENHAR A GRELHA PERFEITA POR CIMA (Para facilitar a transferência para a rua)
+    eCtx.strokeStyle = 'rgba(0, 0, 0, 0.4)';
+    eCtx.lineWidth = Math.max(1.5, expWidth / 600);
     
-    // 3. Desenha a imagem em alta resolução
-    eCtx.drawImage(img, -w/2, -h/2, w, h);
-    
-    eCtx.restore(); // Restaura o contexto para desenhar reto por cima
-    
-    // 4. DESENHA A GRELHA (GRID) POR CIMA DE TUDO (Igual à imagem de referência)
-    eCtx.strokeStyle = 'rgba(0, 0, 0, 0.5)'; // Cor da grelha semi-transparente
-    eCtx.lineWidth = Math.max(1.5, expWidth / 600); // Espessura proporcional ao tamanho
-    
-    // Divide a largura em quadrados idênticos (ex: 12 colunas de quadrados perfeitos)
     const colunas = 12;
     const tamanhoQuadrado = expWidth / colunas;
     
-    // Linhas Verticais
     for (let x = 0; x <= expWidth; x += tamanhoQuadrado) {
-        eCtx.beginPath();
-        eCtx.moveTo(x, 0);
-        eCtx.lineTo(x, expHeight);
-        eCtx.stroke();
+      eCtx.beginPath(); eCtx.moveTo(x, 0); eCtx.lineTo(x, expHeight); eCtx.stroke();
     }
-    
-    // Linhas Horizontais
     for (let y = 0; y <= expHeight; y += tamanhoQuadrado) {
-        eCtx.beginPath();
-        eCtx.moveTo(0, y);
-        eCtx.lineTo(expWidth, y);
-        eCtx.stroke();
+      eCtx.beginPath(); eCtx.moveTo(0, y); eCtx.lineTo(expWidth, y); eCtx.stroke();
     }
-    
-    // Borda final em redor da imagem
     eCtx.strokeRect(0, 0, expWidth, expHeight);
     
-    // Faz o download
+    // Download
     const link = document.createElement('a');
-    link.download = 'molde-impressao-com-grelha.png';
+    link.download = 'molde-anamorfico-3d-grelha.png';
     link.href = expCanvas.toDataURL('image/png');
     link.click();
     
-    alert("Molde distorcido com grelha de transferência guardado em ALTA RESOLUÇÃO!");
+    alert("Molde anamórfico perfeito guardado! A imagem e a grelha foram distorcidas matematicamente para impressão.");
 
   } else {
-    // MODO AR: Salva a visão da Câmera normal
+    // MODO AR: Salva a visão da Câmara normal
     const snap = document.createElement('canvas');
     snap.width = canvas.width;
     snap.height = canvas.height;
     const sctx = snap.getContext('2d');
     
-    sctx.drawImage(video, 0, 0, snap.width, snap.height);
+    if(video.readyState === video.HAVE_ENOUGH_DATA) {
+      sctx.drawImage(video, 0, 0, snap.width, snap.height);
+    } else {
+      sctx.fillStyle = '#0a0a0a';
+      sctx.fillRect(0, 0, snap.width, snap.height);
+    }
+    
     sctx.drawImage(canvas, 0, 0);
     
     const link = document.createElement('a');
