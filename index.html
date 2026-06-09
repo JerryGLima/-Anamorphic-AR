@@ -76,7 +76,7 @@
   .upload-btn:active { opacity: 0.8; }
   #file-input { display: none; }
 
-  /* ── DICA VISUAL ── */
+  /* ── DICA VISUAL E MODAL ── */
   #hint {
     position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
     z-index: 5; background: rgba(0,0,0,0.6); backdrop-filter: blur(6px);
@@ -86,15 +86,29 @@
     opacity: 0;
   }
 
+  #custom-modal {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 100;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .modal-content {
+    background: #1a1a1a; padding: 24px; border-radius: 16px; border: 1px solid #333;
+    max-width: 320px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  }
+  .modal-content h3 { margin-bottom: 12px; color: #4CAF50; font-size: 18px; }
+  .modal-content p { font-size: 14px; color: #ccc; line-height: 1.5; margin-bottom: 20px; }
+  .modal-content button {
+    background: #0066ff; color: #fff; border: none; padding: 12px 28px;
+    border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%;
+  }
+
   /* ── PAINEL DE CONTROLOS ── */
   #bottom-panel {
     position: fixed; bottom: 0; left: 0; right: 0; z-index: 10;
-    padding: 12px 16px 20px; background: linear-gradient(to top, rgba(0,0,0,0.95) 60%, rgba(0,0,0,0.7), transparent);
+    padding: 12px 16px 20px; background: linear-gradient(to top, rgba(0,0,0,0.95) 60%, rgba(0,0,0,0.8), transparent);
     display: flex; flex-direction: column; gap: 12px;
     max-height: 55vh; overflow-y: auto;
   }
 
-  /* Painel de Métricas em Tempo Real */
   #metrics-panel {
     background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);
     border-radius: 12px; padding: 10px; margin-bottom: 4px;
@@ -124,6 +138,13 @@
     -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%;
     background: #fff; cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,0.5);
   }
+
+  .custom-select {
+    width: 100%; height: 36px; background: rgba(255,255,255,0.15); color: #fff;
+    border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; padding: 0 10px;
+    font-size: 13px; outline: none; font-weight: 600; cursor: pointer;
+  }
+  .custom-select option { background: #222; color: #fff; }
 
   .icon-btn {
     width: 44px; height: 44px; border-radius: 12px;
@@ -160,8 +181,8 @@
 
 <div id="upload-screen">
   <div class="logo-mark">📐</div>
-  <h2>Projeção no Chão</h2>
-  <p>Carregue a imagem normal (vista de frente).</p>
+  <h2>Projeção Anamórfica</h2>
+  <p>Carregue a imagem original (vista de frente).</p>
   <button class="upload-btn" onclick="document.getElementById('file-input').click()">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="20"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
     Escolher Imagem
@@ -170,6 +191,15 @@
 </div>
 
 <div id="hint">👆 Arraste para mover<br>🤏 Faça movimento de pinça para zoom</div>
+
+<!-- Modal de Sucesso Customizado (Substitui o alert nativo) -->
+<div id="custom-modal" class="hidden">
+  <div class="modal-content">
+    <h3>✅ Exportado com Sucesso!</h3>
+    <p id="modal-msg"></p>
+    <button onclick="document.getElementById('custom-modal').classList.add('hidden')">Compreendido</button>
+  </div>
+</div>
 
 <div id="bottom-panel" class="hidden">
   
@@ -208,16 +238,29 @@
 
   <div class="section-title">2. Cálculo Matemático (Metros Reais)</div>
   <div class="slider-group">
-    <label>A Sua Altura (Nível dos Olhos) <span id="eye-val">1.75 m</span></label>
-    <input type="range" id="eye-slider" min="0.50" max="2.50" value="1.75" step="0.05">
+    <label>A Sua Altura (Olhos) <span id="eye-val">1.75 m</span></label>
+    <input type="range" id="eye-slider" min="0.10" max="2.50" value="1.75" step="0.05">
   </div>
   <div class="slider-group">
-    <label>Distância até à Base do Desenho <span id="dist-val">2.00 m</span></label>
-    <input type="range" id="dist-slider" min="0.50" max="10.00" value="2.00" step="0.10">
+    <label>Distância à Base da Pintura <span id="dist-val">2.00 m</span></label>
+    <input type="range" id="dist-slider" min="0.10" max="10.00" value="2.00" step="0.05">
   </div>
   <div class="slider-group">
-    <label>Altura Virtual do Objeto 3D <span id="obj-val">1.00 m</span></label>
-    <input type="range" id="obj-slider" min="0.10" max="3.00" value="1.00" step="0.05">
+    <label>Altura Virtual do Desenho <span id="obj-val">1.00 m</span></label>
+    <input type="range" id="obj-slider" min="0.02" max="5.00" value="1.00" step="0.02">
+  </div>
+
+  <div class="section-title">3. Molde e Grelha</div>
+  <div class="slider-group">
+    <select id="grid-select" class="custom-select">
+      <option value="0.01">Grelha de 1 cm (Mesa/Papel A4)</option>
+      <option value="0.02">Grelha de 2 cm (Mesa/Papel A3)</option>
+      <option value="0.05">Grelha de 5 cm</option>
+      <option value="0.10">Grelha de 10 cm</option>
+      <option value="0.30" selected>Grelha de 30 cm (Rua - Detalhe)</option>
+      <option value="0.50">Grelha de 50 cm (Rua - Padrão)</option>
+      <option value="1.00">Grelha de 1 metro (Projetos Gigantes)</option>
+    </select>
   </div>
 
   <div class="action-row">
@@ -228,7 +271,7 @@
     </button>
     <button class="action-btn btn-snap" id="snap-btn">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
-      Exportar Grelha
+      Exportar
     </button>
   </div>
 </div>
@@ -242,9 +285,9 @@ const hintEl = document.getElementById('hint');
 // Variáveis de Imagem
 let originalImg = null;
 let processedImg = null;
-let activeImg = null; // Imagem a ser renderizada (original ou processada)
+let activeImg = null; 
 let isBgRemoved = false;
-let isPlanView = false; // Se true, mostra a planta. Se false, mostra a câmara.
+let isPlanView = false; 
 
 // Variáveis de Enquadramento Visual (AR)
 let pos = { x: 0, y: 0 };
@@ -253,10 +296,11 @@ let rotation = 0;
 let dragging = false;
 let dragStart = { x: 0, y: 0 };
 
-// Variáveis de Cálculo Físico (Metros)
-let h_eye = 1.75;  // Altura do observador
-let d_dist = 2.00; // Distância até à pintura
-let h_obj = 1.00;  // Altura do objeto 3D
+// Variáveis Físicas
+let h_eye = 1.75;  
+let d_dist = 2.00; 
+let h_obj = 1.00;  
+let gridSizeMeters = 0.30; // 30cm por defeito
 
 // Componentes UI
 const scaleSlider = document.getElementById('scale-slider');
@@ -264,6 +308,7 @@ const rotSlider = document.getElementById('rot-slider');
 const eyeSlider = document.getElementById('eye-slider');
 const distSlider = document.getElementById('dist-slider');
 const objSlider = document.getElementById('obj-slider');
+const gridSelect = document.getElementById('grid-select');
 const outLen = document.getElementById('out-length');
 const outW = document.getElementById('out-width');
 const previewBtn = document.getElementById('preview-btn');
@@ -273,7 +318,7 @@ const magicBtn = document.getElementById('magic-btn');
 // Inicializar Câmara
 navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
   .then(stream => { video.srcObject = stream; })
-  .catch(e => console.log('Sem câmara, fundo preto ativado.'));
+  .catch(e => console.log('Câmara não encontrada, fundo transparente/preto ativado.'));
 
 function resizeCanvas() {
   canvas.width = window.innerWidth;
@@ -282,7 +327,12 @@ function resizeCanvas() {
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
 
-// Loop de Renderização Principal
+function showModalMessage(msg) {
+  document.getElementById('modal-msg').innerHTML = msg.replace(/\n/g, '<br>');
+  document.getElementById('custom-modal').classList.remove('hidden');
+}
+
+// Loop Principal
 function loop() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   
@@ -291,14 +341,13 @@ function loop() {
     return;
   }
 
-  // Lógica Física: O objeto não deve ser mais alto que a linha dos olhos
-  if (h_obj >= h_eye - 0.05) {
-    h_obj = Math.max(0.1, h_eye - 0.05);
+  // Prevenir que o objeto seja mais alto que os olhos (quebra a matemática da projeção no chão)
+  if (h_obj >= h_eye - 0.01) {
+    h_obj = Math.max(0.01, h_eye - 0.01);
     objSlider.value = h_obj;
     document.getElementById('obj-val').textContent = h_obj.toFixed(2) + ' m';
   }
 
-  // Cálculos Métricos baseados na imagem ativa
   const imgAspectRatio = activeImg.naturalWidth / activeImg.naturalHeight;
   const w_obj = h_obj * imgAspectRatio;
   
@@ -306,14 +355,13 @@ function loop() {
   const maxW_factor = h_eye / (h_eye - h_obj);
   const maxW = w_obj * maxW_factor;
 
-  outLen.textContent = maxZ.toFixed(2) + ' m';
-  outW.textContent = maxW.toFixed(2) + ' m';
+  // Ajustar o formato de exibição caso seja muito pequeno (< 1 metro)
+  outLen.textContent = maxZ < 1 ? (maxZ * 100).toFixed(1) + ' cm' : maxZ.toFixed(2) + ' m';
+  outW.textContent = maxW < 1 ? (maxW * 100).toFixed(1) + ' cm' : maxW.toFixed(2) + ' m';
 
   if (isPlanView) {
-    // ── VISTA DE PLANTA DO CHÃO ──
     drawTopDownPlan(ctx, canvas.width, canvas.height, maxZ, maxW, w_obj, false);
   } else {
-    // ── VISTA DO ARTISTA (AR - Arrastável) ──
     ctx.save();
     ctx.translate(pos.x, pos.y);
     ctx.rotate(rotation * Math.PI / 180);
@@ -329,7 +377,7 @@ function loop() {
   requestAnimationFrame(loop);
 }
 
-// ── O MOTOR DE PROJEÇÃO FÍSICA NO CHÃO ──
+// Motor de Projeção Anamórfica Físico
 function drawTopDownPlan(context, viewW, viewH, maxZ, maxW, w_obj, isExport) {
   const pixelsPerMeter = isExport ? 300 : Math.min(viewH * 0.7 / maxZ, viewW * 0.8 / maxW);
   const canvasW = isExport ? viewW : canvas.width;
@@ -376,8 +424,7 @@ function drawTopDownPlan(context, viewW, viewH, maxZ, maxW, w_obj, isExport) {
     context.drawImage(activeImg, 0, sy, imgW, sh, dx, dy, sliceW, dh);
   }
 
-  // ── GRELHA MÉTRICA NO CHÃO (Quadrados Reais de 30cm) ──
-  const gridSizeMeters = 0.3; // 30x30 cm
+  // Grelha Dinâmica Métrica
   const gridPx = gridSizeMeters * pixelsPerMeter;
   
   context.strokeStyle = isExport ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.3)';
@@ -392,7 +439,11 @@ function drawTopDownPlan(context, viewW, viewH, maxZ, maxW, w_obj, isExport) {
   for (let i = -numCols; i <= numCols; i++) {
     const x = centerX + (i * gridPx);
     context.beginPath(); context.moveTo(x, baseY - (numRows * gridPx)); context.lineTo(x, baseY + gridPx); context.stroke();
-    if (isExport && i !== 0) context.fillText(Math.abs(i * gridSizeMeters).toFixed(1) + "m", x, baseY + gridPx + 20);
+    if (isExport && i !== 0) {
+      let val = Math.abs(i * gridSizeMeters);
+      let label = val < 1 ? (val * 100).toFixed(0) + "cm" : val.toFixed(2) + "m";
+      context.fillText(label, x, baseY + gridPx + 20);
+    }
   }
 
   for (let i = -1; i <= numRows; i++) {
@@ -400,17 +451,20 @@ function drawTopDownPlan(context, viewW, viewH, maxZ, maxW, w_obj, isExport) {
     context.beginPath(); context.moveTo(centerX - (numCols * gridPx), y); context.lineTo(centerX + (numCols * gridPx), y); context.stroke();
     if (isExport && i >= 0) {
       context.textAlign = "right";
-      context.fillText(parseFloat(i * gridSizeMeters).toFixed(1) + "m", centerX - (numCols * gridPx) - 10, y + 5);
+      let val = i * gridSizeMeters;
+      let label = val < 1 ? (val * 100).toFixed(0) + "cm" : val.toFixed(2) + "m";
+      context.fillText(label, centerX - (numCols * gridPx) - 10, y + 5);
     }
   }
 
+  // Eixos Principais
   context.strokeStyle = 'rgba(255, 0, 0, 0.6)';
   context.lineWidth = isExport ? 3 : 1.5;
   context.beginPath(); context.moveTo(centerX, baseY - (numRows * gridPx)); context.lineTo(centerX, baseY + gridPx); context.stroke();
   context.beginPath(); context.moveTo(centerX - (numCols * gridPx), baseY); context.lineTo(centerX + (numCols * gridPx), baseY); context.stroke();
 }
 
-// ── REMOÇÃO INTELIGENTE DE FUNDO ──
+// Remoção Automática de Fundo
 function processBackgroundRemoval(imgSource) {
   return new Promise((resolve) => {
     const c = document.createElement('canvas');
@@ -454,7 +508,7 @@ magicBtn.addEventListener('click', async function() {
     this.classList.remove('active');
   } else {
     this.classList.add('active'); 
-    await new Promise(r => setTimeout(r, 20)); // Delay para permitir atualizar a UI
+    await new Promise(r => setTimeout(r, 20));
     if (!processedImg) {
       processedImg = await processBackgroundRemoval(originalImg);
     }
@@ -463,7 +517,7 @@ magicBtn.addEventListener('click', async function() {
   }
 });
 
-// ── GESTÃO DE ARRASTAR E SOLTAR (INTERAÇÃO AR) ──
+// Eventos de Arrastar/Zoom
 function getPoint(e) {
   if (e.touches) return { x: e.touches[0].clientX, y: e.touches[0].clientY };
   return { x: e.clientX, y: e.clientY };
@@ -485,7 +539,6 @@ canvas.addEventListener('pointermove', e => {
 canvas.addEventListener('pointerup', () => { dragging = false; });
 canvas.addEventListener('pointercancel', () => { dragging = false; });
 
-// Pinch-to-zoom
 let lastDist = 0;
 canvas.addEventListener('touchstart', e => {
   if (e.touches.length === 2 && !isPlanView) {
@@ -507,7 +560,7 @@ canvas.addEventListener('touchmove', e => {
   }
 }, { passive: false });
 
-// ── EVENTOS DE UI ──
+// Controlos de UI
 document.getElementById('file-input').addEventListener('change', e => {
   const file = e.target.files[0];
   if (!file) return;
@@ -541,12 +594,15 @@ document.getElementById('file-input').addEventListener('change', e => {
   reader.readAsDataURL(file);
 });
 
-// Update Sliders
 scaleSlider.addEventListener('input', e => { scale = e.target.value / 100; document.getElementById('scale-val').textContent = e.target.value + '%'; });
 rotSlider.addEventListener('input', e => { rotation = parseInt(e.target.value); document.getElementById('rot-val').textContent = e.target.value + '°'; });
 eyeSlider.addEventListener('input', e => { h_eye = parseFloat(e.target.value); document.getElementById('eye-val').textContent = h_eye.toFixed(2) + ' m'; });
 distSlider.addEventListener('input', e => { d_dist = parseFloat(e.target.value); document.getElementById('dist-val').textContent = d_dist.toFixed(2) + ' m'; });
 objSlider.addEventListener('input', e => { h_obj = parseFloat(e.target.value); document.getElementById('obj-val').textContent = h_obj.toFixed(2) + ' m'; });
+
+gridSelect.addEventListener('change', e => {
+  gridSizeMeters = parseFloat(e.target.value);
+});
 
 previewBtn.addEventListener('click', () => {
   isPlanView = !isPlanView;
@@ -563,7 +619,7 @@ previewBtn.addEventListener('click', () => {
   }
 });
 
-// ── EXPORTAR MOLDE EM ALTA RESOLUÇÃO ──
+// Exportar e Alert Customizado
 document.getElementById('snap-btn').addEventListener('click', () => {
   if (!activeImg) return;
 
@@ -583,11 +639,15 @@ document.getElementById('snap-btn').addEventListener('click', () => {
   drawTopDownPlan(eCtx, expCanvas.width, expCanvas.height, maxZ, maxW, w_obj, true);
 
   const link = document.createElement('a');
-  link.download = `molde_chao_${maxZ.toFixed(1)}m_por_${maxW.toFixed(1)}m.png`;
+  link.download = `molde_anamorfico_grade_${gridSizeMeters*100}cm.png`;
   link.href = expCanvas.toDataURL('image/png');
   link.click();
 
-  alert(`Molde exportado com sucesso!\n\nUse a grelha de transferência:\nCada quadrado no papel representa exatamente 30x30 cm no chão real.`);
+  let cm = Math.round(gridSizeMeters * 100);
+  let finalMsg = `A sua planta foi gerada para uma área de <b>${maxZ < 1 ? (maxZ*100).toFixed(0)+'cm' : maxZ.toFixed(2)+'m'}</b> por <b>${maxW < 1 ? (maxW*100).toFixed(0)+'cm' : maxW.toFixed(2)+'m'}</b>.<br><br>`;
+  finalMsg += `Na folha que foi descarregada, cada quadrado da grelha de transferência representa <b>exatamente ${cm}x${cm} cm</b> no chão real.`;
+  
+  showModalMessage(finalMsg);
 });
 
 requestAnimationFrame(loop);
