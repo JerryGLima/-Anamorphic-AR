@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-PT">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Anamorphic AR & Molde</title>
+<title>Anamorphic AR & Planta Física</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -17,7 +17,7 @@
     flex-direction: column;
   }
 
-  /* ── CAMERA LAYER ── */
+  /* ── CAMADA DE VÍDEO E CANVAS ── */
   #camera-view {
     position: fixed;
     inset: 0;
@@ -28,7 +28,6 @@
     transition: opacity 0.3s;
   }
 
-  /* ── OVERLAY CANVAS ── */
   #overlay-canvas {
     position: fixed;
     inset: 0;
@@ -36,7 +35,7 @@
     touch-action: none;
   }
 
-  /* ── UI PANELS ── */
+  /* ── UI: TOPO ── */
   #top-bar {
     position: fixed;
     top: 0; left: 0; right: 0;
@@ -45,346 +44,142 @@
     align-items: center;
     justify-content: space-between;
     padding: 12px 16px;
-    background: linear-gradient(to bottom, rgba(0,0,0,0.7), transparent);
+    background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent);
   }
-
-  #top-bar h1 {
-    font-size: 15px;
-    font-weight: 600;
-    letter-spacing: 0.5px;
-    color: #fff;
-  }
-
-  #top-bar .badge {
-    font-size: 11px;
-    background: rgba(255,80,80,0.85);
-    color: #fff;
-    padding: 3px 8px;
-    border-radius: 20px;
-    font-weight: 600;
-    letter-spacing: 0.3px;
+  #top-bar h1 { font-size: 15px; font-weight: 600; color: #fff; }
+  .badge {
+    font-size: 11px; font-weight: 600;
+    padding: 4px 10px; border-radius: 20px;
+    background: rgba(255,80,80,0.85); color: #fff;
     transition: background 0.3s;
   }
 
-  /* ── UPLOAD SCREEN ── */
+  /* ── ECRÃ DE UPLOAD ── */
   #upload-screen {
-    position: fixed;
-    inset: 0;
-    z-index: 20;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    background: #0e0e0e;
-    gap: 24px;
-    padding: 32px;
+    position: fixed; inset: 0; z-index: 20;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    background: #0e0e0e; gap: 24px; padding: 32px;
   }
-
   .logo-mark {
     width: 72px; height: 72px;
-    background: rgba(255,255,255,0.06);
-    border: 1.5px solid rgba(255,255,255,0.15);
-    border-radius: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 32px;
+    background: rgba(255,255,255,0.06); border: 1.5px solid rgba(255,255,255,0.15);
+    border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 32px;
   }
-
-  #upload-screen h2 {
-    font-size: 22px;
-    font-weight: 700;
-    text-align: center;
-    letter-spacing: -0.3px;
-  }
-
-  #upload-screen p {
-    font-size: 14px;
-    color: rgba(255,255,255,0.5);
-    text-align: center;
-    line-height: 1.6;
-    max-width: 280px;
-  }
-
+  #upload-screen h2 { font-size: 22px; font-weight: 700; text-align: center; }
+  #upload-screen p { font-size: 14px; color: rgba(255,255,255,0.5); text-align: center; line-height: 1.6; max-width: 300px; }
+  
   .upload-btn {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    background: #fff;
-    color: #000;
-    border: none;
-    border-radius: 14px;
-    padding: 14px 28px;
-    font-size: 15px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: opacity .15s;
+    display: flex; align-items: center; gap: 10px;
+    background: #fff; color: #000; border: none; border-radius: 14px;
+    padding: 14px 28px; font-size: 15px; font-weight: 600; cursor: pointer;
   }
   .upload-btn:active { opacity: 0.8; }
-  .upload-btn svg { width: 20px; height: 20px; flex-shrink: 0; }
   #file-input { display: none; }
 
-  /* ── BOTTOM CONTROLS ── */
+  /* ── PAINEL DE CONTROLOS (FÍSICA) ── */
   #bottom-panel {
-    position: fixed;
-    bottom: 0; left: 0; right: 0;
-    z-index: 10;
-    padding: 16px 16px 28px;
-    background: linear-gradient(to top, rgba(0,0,0,0.85) 40%, transparent);
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 10;
+    padding: 16px; background: linear-gradient(to top, rgba(0,0,0,0.95) 50%, rgba(0,0,0,0.7), transparent);
+    display: flex; flex-direction: column; gap: 12px;
   }
 
-  .controls-row {
-    display: flex;
-    gap: 10px;
-    align-items: center;
+  /* Painel de Métricas em Tempo Real */
+  #metrics-panel {
+    background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 12px; padding: 12px; margin-bottom: 4px;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
   }
+  .metric-box { display: flex; flex-direction: column; }
+  .metric-label { font-size: 10px; color: rgba(255,255,255,0.6); text-transform: uppercase; letter-spacing: 0.5px; }
+  .metric-value { font-size: 16px; font-weight: 700; color: #4CAF50; }
 
-  .slider-group {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    flex: 1;
-  }
-
+  .slider-group { display: flex; flex-direction: column; gap: 6px; flex: 1; }
   .slider-group label {
-    font-size: 10px;
-    color: rgba(255,255,255,0.6);
-    text-transform: uppercase;
-    letter-spacing: 0.8px;
-    display: flex;
-    justify-content: space-between;
+    font-size: 11px; color: rgba(255,255,255,0.7); text-transform: uppercase;
+    display: flex; justify-content: space-between; font-weight: 600;
   }
-
-  .slider-group label span {
-    color: rgba(255,255,255,0.9);
-    font-weight: 600;
-  }
+  .slider-group label span { color: #fff; }
 
   input[type=range] {
-    -webkit-appearance: none;
-    width: 100%;
-    height: 4px;
-    border-radius: 2px;
-    background: rgba(255,255,255,0.2);
-    outline: none;
+    -webkit-appearance: none; width: 100%; height: 5px;
+    border-radius: 3px; background: rgba(255,255,255,0.2); outline: none;
   }
   input[type=range]::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    width: 18px; height: 18px;
-    border-radius: 50%;
-    background: #fff;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.4);
-    cursor: pointer;
+    -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%;
+    background: #fff; cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,0.5);
   }
 
-  .icon-btn {
-    width: 42px; height: 42px;
-    border-radius: 12px;
-    background: rgba(255,255,255,0.12);
-    border: 1px solid rgba(255,255,255,0.2);
-    color: #fff;
-    font-size: 18px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    flex-shrink: 0;
-    transition: all .2s;
-    user-select: none;
-  }
-  .icon-btn:active { transform: scale(0.95); }
-  .icon-btn.active {
-    background: #0066ff;
-    border-color: #0066ff;
-    color: #fff;
-  }
-  .icon-btn svg { width: 18px; height: 18px; pointer-events: none; }
-
-  .action-row {
-    display: flex;
-    gap: 8px;
-    margin-top: 4px;
-  }
-
+  .action-row { display: flex; gap: 8px; margin-top: 8px; }
   .action-btn {
-    flex: 1;
-    height: 44px;
-    border-radius: 12px;
-    border: none;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all .15s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
+    flex: 1; height: 46px; border-radius: 12px; border: none; font-size: 13px; font-weight: 600;
+    cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;
+    background: rgba(255,255,255,0.15); color: #fff; border: 1px solid rgba(255,255,255,0.2);
   }
-  .action-btn:active { opacity: 0.8; transform: scale(0.98); }
-
-  .btn-change {
-    background: rgba(255,255,255,0.12);
-    color: #fff;
-    border: 1px solid rgba(255,255,255,0.2);
-  }
-  .btn-preview {
-    background: rgba(255,255,255,0.12);
-    color: #fff;
-    border: 1px solid rgba(255,255,255,0.2);
-  }
-  .btn-preview.active {
-    background: #0066ff;
-    color: #fff;
-    border-color: #0066ff;
-  }
-  .btn-snap {
-    background: #fff;
-    color: #000;
-  }
-
-  /* ── HINT OVERLAY ── */
-  #hint {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    z-index: 5;
-    background: rgba(0,0,0,0.6);
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
-    border: 1px solid rgba(255,255,255,0.15);
-    border-radius: 16px;
-    padding: 16px 20px;
-    font-size: 13px;
-    color: rgba(255,255,255,0.85);
-    text-align: center;
-    pointer-events: none;
-    transition: opacity .4s;
-    max-width: 240px;
-    line-height: 1.5;
-    opacity: 0;
-  }
-
-  #no-cam {
-    position: fixed;
-    inset: 0;
-    z-index: 2;
-    display: none;
-    align-items: center;
-    justify-content: center;
-    background: #111;
-    flex-direction: column;
-    gap: 12px;
-    text-align: center;
-    padding: 32px;
-  }
-  #no-cam p { font-size: 14px; color: rgba(255,255,255,0.5); line-height: 1.6; }
+  .action-btn:active { transform: scale(0.98); }
+  .btn-preview.active { background: #0066ff; border-color: #0066ff; }
+  .btn-snap { background: #fff; color: #000; }
 
   .hidden { display: none !important; }
 </style>
 </head>
 <body>
 
-<!-- VIDEO STREAM -->
 <video id="camera-view" autoplay playsinline muted></video>
-
-<!-- DRAWING CANVAS -->
 <canvas id="overlay-canvas"></canvas>
 
-<!-- TOP BAR -->
 <div id="top-bar" class="hidden">
-  <h1>🎨 Anamorphic AR</h1>
-  <div class="badge" id="cam-label">CAM AO VIVO</div>
+  <h1>📐 Anamorfismo Físico</h1>
+  <div class="badge" id="cam-label">VISTA DO ARTISTA</div>
 </div>
 
-<!-- NO CAMERA FALLBACK -->
-<div id="no-cam">
-  <div style="font-size:40px">📷</div>
-  <p>Câmera não encontrada ou acesso negado.<br>No preview do navegador, pode ser necessário permitir acesso à câmera ou usar um telemóvel.</p>
-</div>
-
-<!-- UPLOAD SCREEN -->
 <div id="upload-screen">
-  <div class="logo-mark">🎨</div>
-  <h2>Anamorphic AR Preview</h2>
-  <p>Faça upload do seu design para aplicar a distorção 3D verdadeira e visualizar no chão.</p>
+  <div class="logo-mark">📐</div>
+  <h2>Projeção no Chão</h2>
+  <p>Carregue a imagem normal (frente). O sistema calculará a física ótica baseada na sua altura (ex: 1,75m) e distância.</p>
   <button class="upload-btn" onclick="document.getElementById('file-input').click()">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-      <polyline points="17 8 12 3 7 8"/>
-      <line x1="12" y1="3" x2="12" y2="15"/>
-    </svg>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="20"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
     Escolher Imagem
   </button>
   <input type="file" id="file-input" accept="image/*">
 </div>
 
-<!-- HINT -->
-<div id="hint">👆 Arraste para mover<br>🔄 Use a Perspectiva 3D para deitar ou inverter a imagem</div>
-
-<!-- BOTTOM PANEL -->
 <div id="bottom-panel" class="hidden">
   
-  <!-- O SEGREDO ANAMÓRFICO -->
-  <div class="controls-row">
-    <div class="slider-group">
-      <!-- Atualizado para ir de -95 (inverso) a +95 (normal) -->
-      <label>Perspectiva 3D (Inverter = Negativo) <span id="tilt-val">0%</span></label>
-      <input type="range" id="tilt-slider" min="-95" max="95" value="0" step="1">
+  <div id="metrics-panel">
+    <div class="metric-box">
+      <span class="metric-label">Comprimento Físico</span>
+      <span class="metric-value" id="out-length">0.00 m</span>
+    </div>
+    <div class="metric-box">
+      <span class="metric-label">Largura Máxima</span>
+      <span class="metric-value" id="out-width">0.00 m</span>
     </div>
   </div>
 
-  <div class="controls-row">
-    <div class="slider-group">
-      <label>Escala <span id="scale-val">100%</span></label>
-      <input type="range" id="scale-slider" min="10" max="300" value="100" step="1">
-    </div>
-    <div class="slider-group">
-      <label>Rotação <span id="rot-val">0°</span></label>
-      <input type="range" id="rot-slider" min="-180" max="180" value="0" step="1">
-    </div>
+  <div class="slider-group">
+    <label>Sua Altura (Olhos) <span id="eye-val">1.75 m</span></label>
+    <input type="range" id="eye-slider" min="0.50" max="2.50" value="1.75" step="0.05">
+  </div>
+  
+  <div class="slider-group">
+    <label>Distância à Base da Pintura <span id="dist-val">2.00 m</span></label>
+    <input type="range" id="dist-slider" min="0.50" max="5.00" value="2.00" step="0.10">
   </div>
 
-  <div class="controls-row">
-    <div class="slider-group">
-      <label>Ajuste de Ângulo (Skew) <span id="skew-val">0°</span></label>
-      <input type="range" id="skew-slider" min="-70" max="70" value="0" step="1">
-    </div>
-    
-    <div class="icon-btn" id="magic-btn" title="Remover Fundo (Automático)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"></path>
-        <path d="M22 21H7"></path>
-        <path d="m5 11 9 9"></path>
-      </svg>
-    </div>
-    <div class="icon-btn" id="flip-btn" title="Espelhar">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M8 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3"/><path d="M16 3h3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-3"/><line x1="12" y1="3" x2="12" y2="21"/>
-      </svg>
-    </div>
-    <div class="icon-btn" id="opacity-btn" title="Opacidade">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 1 0 20z"/>
-      </svg>
-    </div>
+  <div class="slider-group">
+    <label>Altura Virtual do Desenho <span id="obj-val">1.00 m</span></label>
+    <input type="range" id="obj-slider" min="0.10" max="2.40" value="1.00" step="0.05">
   </div>
 
   <div class="action-row">
-    <button class="action-btn btn-change" onclick="document.getElementById('file-input').click()">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-      Trocar
-    </button>
+    <button class="action-btn btn-change" onclick="document.getElementById('file-input').click()">Trocar</button>
     <button class="action-btn btn-preview" id="preview-btn">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
-      Molde 2D
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
+      Planta do Chão
     </button>
     <button class="action-btn btn-snap" id="snap-btn">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
-      <span id="snap-label">Salvar</span>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+      Exportar Grelha
     </button>
   </div>
 </div>
@@ -393,55 +188,27 @@
 const video = document.getElementById('camera-view');
 const canvas = document.getElementById('overlay-canvas');
 const ctx = canvas.getContext('2d');
-const uploadScreen = document.getElementById('upload-screen');
-const bottomPanel = document.getElementById('bottom-panel');
-const topBar = document.getElementById('top-bar');
-const hintEl = document.getElementById('hint');
-const noCam = document.getElementById('no-cam');
-const fileInput = document.getElementById('file-input');
+let originalImg = null;
+let isPlanView = false; // Se true, mostra a vista de cima distorcida. Se false, mostra como deve parecer para o artista.
+
+// Variáveis do Mundo Físico
+let h_eye = 1.75;  // Altura do observador (m)
+let d_dist = 2.00; // Distância até à base do desenho (m)
+let h_obj = 1.00;  // Altura aparente do desenho (m)
+
+// Componentes UI
+const eyeSlider = document.getElementById('eye-slider');
+const distSlider = document.getElementById('dist-slider');
+const objSlider = document.getElementById('obj-slider');
+const outLen = document.getElementById('out-length');
+const outW = document.getElementById('out-width');
 const previewBtn = document.getElementById('preview-btn');
 const camLabel = document.getElementById('cam-label');
-const magicBtn = document.getElementById('magic-btn');
-const snapLabel = document.getElementById('snap-label');
 
-// Controle de Imagem
-let originalImg = null;
-let processedImg = null; 
-let isBgRemoved = false;
-let img = null; 
-
-let pos = { x: 0, y: 0 };
-let scale = 1;
-let skewY = 0;
-let rotation = 0;
-let tiltValue = 0; // Valor de perspectiva 3D (-95 a 95)
-let opacity = 0.85;
-let flipped = false;
-let dragging = false;
-let dragStart = { x: 0, y: 0 };
-let opacityIndex = 0;
-const opacities = [0.85, 0.6, 0.35, 1.0];
-let isPaintPreview = false;
-
-// ── CAMERA ──
-async function startCamera() {
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } },
-      audio: false
-    });
-    video.srcObject = stream;
-    video.onloadedmetadata = () => {
-      resizeCanvas();
-      requestAnimationFrame(loop);
-    };
-  } catch(e) {
-    console.warn('Erro ao aceder à câmara:', e);
-    noCam.style.display = 'flex';
-    resizeCanvas();
-    requestAnimationFrame(loop); 
-  }
-}
+// Inicializar Câmera
+navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+  .then(stream => { video.srcObject = stream; })
+  .catch(e => console.log('Sem câmera, fundo preto ativado.'));
 
 function resizeCanvas() {
   canvas.width = window.innerWidth;
@@ -450,396 +217,220 @@ function resizeCanvas() {
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
 
-// ── DRAW LOOP ──
+// Loop de Renderização
 function loop() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-  if (isPaintPreview) {
-    drawGridScreen();
-  }
-
-  if (img) {
-    drawAnamorphicToContext(ctx, img, pos.x, pos.y, scale, rotation, skewY, tiltValue, false);
-  }
   
+  if (!originalImg) {
+    requestAnimationFrame(loop);
+    return;
+  }
+
+  // Lógica de restrição física: O objeto não pode ser mais alto que a linha do horizonte dos olhos
+  if (h_obj >= h_eye - 0.05) {
+    h_obj = Math.max(0.1, h_eye - 0.05);
+    objSlider.value = h_obj;
+    document.getElementById('obj-val').textContent = h_obj.toFixed(2) + ' m';
+  }
+
+  // Cálculos Métricos
+  const imgAspectRatio = originalImg.naturalWidth / originalImg.naturalHeight;
+  const w_obj = h_obj * imgAspectRatio; // Largura aparente (virtual) base
+  
+  const maxZ = d_dist * (h_obj / (h_eye - h_obj)); // Comprimento projetado no chão
+  const maxW_factor = h_eye / (h_eye - h_obj);
+  const maxW = w_obj * maxW_factor; // Largura máxima no chão (no topo do desenho)
+
+  // Atualiza painel de métricas UI
+  outLen.textContent = maxZ.toFixed(2) + ' m';
+  outW.textContent = maxW.toFixed(2) + ' m';
+
+  if (isPlanView) {
+    // ── VISTA DE CIMA (PLANTA/MOLDE) ──
+    drawTopDownPlan(ctx, canvas.width, canvas.height, maxZ, maxW, w_obj, false);
+  } else {
+    // ── VISTA DO ARTISTA (PREVIEW NORMAL) ──
+    // O artista de pé vê o desenho "normal". Desenha-o centrado no ecrã para servir de guia.
+    const previewScale = Math.min(canvas.width * 0.8 / originalImg.naturalWidth, canvas.height * 0.6 / originalImg.naturalHeight);
+    const pw = originalImg.naturalWidth * previewScale;
+    const ph = originalImg.naturalHeight * previewScale;
+    
+    ctx.globalAlpha = 0.85;
+    ctx.drawImage(originalImg, (canvas.width - pw)/2, (canvas.height - ph)/2 + 40, pw, ph);
+    ctx.globalAlpha = 1.0;
+    
+    // Texto de aviso
+    ctx.fillStyle = "rgba(0,0,0,0.6)";
+    ctx.fillRect(0, canvas.height - 230, canvas.width, 30);
+    ctx.fillStyle = "#fff"; ctx.font = "12px sans-serif"; ctx.textAlign = "center";
+    ctx.fillText("Isto é como o desenho DEVE parecer a partir dos seus olhos.", canvas.width/2, canvas.height - 210);
+  }
+
   requestAnimationFrame(loop);
 }
 
-// ── MOTOR ANAMÓRFICO ATUALIZADO (SUPORTA INVERSÃO) ──
-function drawAnamorphicToContext(ctxToDraw, sourceImg, posX, posY, imgScale, rotDeg, skewDeg, tiltPercent, isExport = false) {
-  if (!sourceImg) return;
+// ── O MOTOR DE PROJEÇÃO FÍSICA NO CHÃO ──
+// Desenha a vista superior esticada (Planta do Chão) baseada na ótica real
+function drawTopDownPlan(context, viewW, viewH, maxZ, maxW, w_obj, isExport) {
+  // Configuração de Escala (Pixéis por Metro)
+  // No ecrã, ajustamos para caber. Na exportação, usamos alta resolução.
+  const pixelsPerMeter = isExport ? 300 : Math.min(viewH * 0.7 / maxZ, viewW * 0.8 / maxW);
   
-  ctxToDraw.save();
-  ctxToDraw.translate(posX, posY);
-  ctxToDraw.rotate(rotDeg * Math.PI / 180);
-
-  const skewRad = skewDeg * Math.PI / 180;
-  ctxToDraw.transform(1, 0, Math.tan(skewRad), 1, 0, 0);
-
-  if (flipped) {
-    ctxToDraw.scale(-1, 1);
-  }
-
-  ctxToDraw.globalAlpha = isPaintPreview ? 1.0 : opacity;
-
-  const w = sourceImg.naturalWidth;
-  const h = sourceImg.naturalHeight;
+  const canvasW = isExport ? viewW : canvas.width;
+  const canvasH = isExport ? viewH : canvas.height;
   
-  const tiltMax = 0.85; 
-  // Usa o valor absoluto para calcular o fator de intensidade
-  const factor = (Math.abs(tiltPercent) / 100) * tiltMax;
-  
-  // VERIFICA SE DEVE ESTICAR O TOPO OU A BASE
-  const stretchTop = tiltPercent >= 0; 
-
-  const step = isExport ? 1 : 4; 
-
-  let totalH = 0;
-  for (let sy = h - step; sy >= 0; sy -= step) {
-    // Se stretchTop for verdadeiro, pct cresce do topo para a base
-    // Se for falso (inverso), pct cresce da base para o topo
-    const pct = stretchTop ? (h - sy) / h : sy / h; 
-    const stretch = 1 / (1 - pct * factor); 
-    totalH += step * stretch * imgScale;
-  }
-
-  let currentY = totalH / 2; 
-
-  for (let sy = h - step; sy >= 0; sy -= step) {
-    const pct = stretchTop ? (h - sy) / h : sy / h; 
-    const stretch = 1 / (1 - pct * factor);
-
-    const sw = w;
-    const sh = step;
-    
-    const dw = w * stretch * imgScale;
-    const dh = step * stretch * imgScale;
-
-    const dx = -dw / 2;
-
-    ctxToDraw.drawImage(sourceImg, 0, sy, sw, sh, dx, currentY - dh, dw, dh);
-    
-    currentY -= dh;
-  }
-
-  ctxToDraw.restore();
-}
-
-function drawGridScreen() {
-  ctx.fillStyle = '#f0f0f0';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  ctx.strokeStyle = '#cccccc';
-  ctx.lineWidth = 1;
-  const gridSize = 40;
-  
-  for (let x = (canvas.width/2) % gridSize; x < canvas.width; x += gridSize) {
-    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
-  }
-  for (let y = (canvas.height/2) % gridSize; y < canvas.height; y += gridSize) {
-    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
-  }
-
-  ctx.strokeStyle = '#ff4444';
-  ctx.lineWidth = 1.5;
-  ctx.beginPath(); ctx.moveTo(canvas.width/2, 0); ctx.lineTo(canvas.width/2, canvas.height); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(0, canvas.height/2); ctx.lineTo(canvas.width, canvas.height/2); ctx.stroke();
-}
-
-// ── REMOÇÃO INTELIGENTE DE FUNDO ──
-function processBackgroundRemoval(imgSource) {
-  return new Promise((resolve) => {
-    const c = document.createElement('canvas');
-    c.width = imgSource.naturalWidth;
-    c.height = imgSource.naturalHeight;
-    const tCtx = c.getContext('2d', { willReadFrequently: true });
-    tCtx.drawImage(imgSource, 0, 0);
-
-    const imgData = tCtx.getImageData(0, 0, c.width, c.height);
-    const data = imgData.data;
-
-    const bgR = data[0], bgG = data[1], bgB = data[2];
-    const tolerance = 45; 
-
-    for (let i = 0; i < data.length; i += 4) {
-      const r = data[i], g = data[i+1], b = data[i+2], a = data[i+3];
-      if (a === 0) continue;
-
-      const dist = Math.sqrt((r-bgR)**2 + (g-bgG)**2 + (b-bgB)**2);
-
-      if (dist < tolerance) {
-        data[i+3] = 0; 
-      } else if (dist < tolerance + 20) {
-        data[i+3] = Math.floor(255 * ((dist - tolerance) / 20));
-      }
-    }
-    tCtx.putImageData(imgData, 0, 0);
-    
-    const newI = new Image();
-    newI.onload = () => resolve(newI);
-    newI.src = c.toDataURL();
-  });
-}
-
-magicBtn.addEventListener('click', async function() {
-  if (!originalImg) return;
-  if (isBgRemoved) {
-    isBgRemoved = false;
-    img = originalImg;
-    this.classList.remove('active');
+  if (isExport) {
+    context.fillStyle = '#ffffff';
+    context.fillRect(0, 0, canvasW, canvasH);
   } else {
-    this.classList.add('active'); 
-    await new Promise(r => setTimeout(r, 20));
-    if (!processedImg) {
-      processedImg = await processBackgroundRemoval(originalImg);
+    context.fillStyle = 'rgba(20, 20, 20, 0.95)';
+    context.fillRect(0, 0, canvasW, canvasH);
+  }
+
+  const centerX = canvasW / 2;
+  const baseY = isExport ? canvasH - (0.5 * pixelsPerMeter) : canvasH - 240; // Base do desenho (onde começa)
+
+  // 1. FATIAMENTO ANAMÓRFICO
+  // Em vez de distorcer com CSS/Skew, calculamos onde cada linha de pixéis da imagem cai no chão
+  const imgW = originalImg.naturalWidth;
+  const imgH = originalImg.naturalHeight;
+  const steps = isExport ? imgH : Math.min(imgH, 600); // Mais performance no ecrã, máximo detalhe na exportação
+
+  for (let row = 0; row < steps; row++) {
+    // Calculamos a física para o limite inferior e superior da fatia
+    const pct1 = row / steps;
+    const pct2 = (row + 1) / steps;
+
+    const y_virt1 = h_obj * pct1;
+    const y_virt2 = h_obj * pct2;
+
+    const z1 = d_dist * (y_virt1 / (h_eye - y_virt1));
+    const z2 = d_dist * (y_virt2 / (h_eye - y_virt2));
+    
+    const s_factor = h_eye / (h_eye - y_virt1);
+
+    const sliceW = w_obj * s_factor * pixelsPerMeter;
+    const sliceZ_start = z1 * pixelsPerMeter;
+    const sliceZ_end = z2 * pixelsPerMeter;
+    
+    // Desenhamos do topo da imagem para baixo, ou seja, linha inversa
+    const sy = imgH - 1 - Math.floor((row / steps) * imgH);
+    const sh = Math.max(1, Math.floor(imgH / steps));
+
+    const dx = centerX - (sliceW / 2);
+    const dy = baseY - sliceZ_end;
+    const dh = (sliceZ_end - sliceZ_start) + (isExport ? 0.5 : 1.5); // Prevenir falhas entre fatias
+
+    context.drawImage(originalImg, 0, sy, imgW, sh, dx, dy, sliceW, dh);
+  }
+
+  // 2. DESENHAR GRELHA MÉTRICA NO CHÃO (Quadrados Reais de 50cm = 0.5m)
+  const gridSizeMeters = 0.5;
+  const gridPx = gridSizeMeters * pixelsPerMeter;
+  
+  context.strokeStyle = isExport ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.3)';
+  context.lineWidth = isExport ? 2 : 1;
+  context.font = isExport ? '16px Arial' : '10px Arial';
+  context.fillStyle = isExport ? '#000' : '#fff';
+  context.textAlign = "center";
+
+  // Calcular limites da grelha com base no tamanho do desenho
+  const numRows = Math.ceil(maxZ / gridSizeMeters) + 1;
+  const numCols = Math.ceil((maxW / 2) / gridSizeMeters) + 1;
+
+  // Linhas Verticais
+  for (let i = -numCols; i <= numCols; i++) {
+    const x = centerX + (i * gridPx);
+    context.beginPath(); context.moveTo(x, baseY - (numRows * gridPx)); context.lineTo(x, baseY + gridPx); context.stroke();
+    // Legenda X
+    if (isExport && i !== 0) context.fillText(Math.abs(i * 0.5) + "m", x, baseY + gridPx + 20);
+  }
+
+  // Linhas Horizontais (Z/Profundidade)
+  for (let i = -1; i <= numRows; i++) {
+    const y = baseY - (i * gridPx);
+    context.beginPath(); context.moveTo(centerX - (numCols * gridPx), y); context.lineTo(centerX + (numCols * gridPx), y); context.stroke();
+    // Legenda Z (Profundidade a partir da base)
+    if (isExport && i >= 0) {
+      context.textAlign = "right";
+      context.fillText(parseFloat(i * 0.5).toFixed(1) + "m", centerX - (numCols * gridPx) - 10, y + 5);
     }
-    isBgRemoved = true;
-    img = processedImg;
   }
-});
 
-// ── TOGGLE PAINT PREVIEW MODE ──
-previewBtn.addEventListener('click', () => {
-  isPaintPreview = !isPaintPreview;
-  if (isPaintPreview) {
-    video.style.opacity = '0';
-    previewBtn.classList.add('active');
-    camLabel.textContent = 'MOLDE 2D';
-    camLabel.style.background = '#0066ff';
-    snapLabel.textContent = 'Imprimir';
-  } else {
-    video.style.opacity = '1';
-    previewBtn.classList.remove('active');
-    camLabel.textContent = 'CAM AO VIVO';
-    camLabel.style.background = 'rgba(255,80,80,0.85)';
-    snapLabel.textContent = 'Salvar';
-  }
-});
+  // Linhas Centrais Vermelhas
+  context.strokeStyle = 'rgba(255, 0, 0, 0.6)';
+  context.lineWidth = isExport ? 3 : 1.5;
+  context.beginPath(); context.moveTo(centerX, baseY - (numRows * gridPx)); context.lineTo(centerX, baseY + gridPx); context.stroke();
+  context.beginPath(); context.moveTo(centerX - (numCols * gridPx), baseY); context.lineTo(centerX + (numCols * gridPx), baseY); context.stroke();
+}
 
-// ── FILE INPUT ──
-fileInput.addEventListener('change', e => {
+// ── EVENTOS DE UI ──
+document.getElementById('file-input').addEventListener('change', e => {
   const file = e.target.files[0];
   if (!file) return;
   const reader = new FileReader();
   reader.onload = ev => {
-    const image = new Image();
-    image.onload = () => {
-      originalImg = image;
-      processedImg = null; 
-      isBgRemoved = false;
-      magicBtn.classList.remove('active');
-      img = originalImg;
-
-      pos.x = canvas.width / 2;
-      pos.y = canvas.height / 2;
-      const maxW = canvas.width * 0.65;
-      scale = Math.min(maxW / img.naturalWidth, 1);
-      document.getElementById('scale-slider').value = Math.round(scale * 100);
-      document.getElementById('scale-val').textContent = Math.round(scale * 100) + '%';
-      
-      uploadScreen.classList.add('hidden');
-      bottomPanel.classList.remove('hidden');
-      topBar.classList.remove('hidden');
-      noCam.style.display = 'none'; 
-      showHint();
+    const img = new Image();
+    img.onload = () => {
+      originalImg = img;
+      document.getElementById('upload-screen').classList.add('hidden');
+      document.getElementById('bottom-panel').classList.remove('hidden');
+      document.getElementById('top-bar').classList.remove('hidden');
     };
-    image.src = ev.target.result;
+    img.src = ev.target.result;
   };
   reader.readAsDataURL(file);
-  e.target.value = '';
 });
 
-function showHint() {
-  hintEl.style.opacity = '1';
-  setTimeout(() => { hintEl.style.opacity = '0'; }, 4000);
-}
+// Update Sliders
+eyeSlider.addEventListener('input', e => { h_eye = parseFloat(e.target.value); document.getElementById('eye-val').textContent = h_eye.toFixed(2) + ' m'; });
+distSlider.addEventListener('input', e => { d_dist = parseFloat(e.target.value); document.getElementById('dist-val').textContent = d_dist.toFixed(2) + ' m'; });
+objSlider.addEventListener('input', e => { h_obj = parseFloat(e.target.value); document.getElementById('obj-val').textContent = h_obj.toFixed(2) + ' m'; });
 
-// ── SLIDERS ──
-document.getElementById('tilt-slider').addEventListener('input', e => {
-  tiltValue = parseInt(e.target.value);
-  document.getElementById('tilt-val').textContent = e.target.value + '%';
-});
-document.getElementById('scale-slider').addEventListener('input', e => {
-  scale = e.target.value / 100;
-  document.getElementById('scale-val').textContent = e.target.value + '%';
-});
-document.getElementById('skew-slider').addEventListener('input', e => {
-  skewY = parseInt(e.target.value);
-  document.getElementById('skew-val').textContent = e.target.value + '°';
-});
-document.getElementById('rot-slider').addEventListener('input', e => {
-  rotation = parseInt(e.target.value);
-  document.getElementById('rot-val').textContent = e.target.value + '°';
-});
-
-document.getElementById('flip-btn').addEventListener('click', () => { flipped = !flipped; });
-document.getElementById('opacity-btn').addEventListener('click', () => {
-  opacityIndex = (opacityIndex + 1) % opacities.length;
-  opacity = opacities[opacityIndex];
-});
-
-// ── DRAG (touch + mouse) ──
-function getPoint(e) {
-  if (e.touches) return { x: e.touches[0].clientX, y: e.touches[0].clientY };
-  return { x: e.clientX, y: e.clientY };
-}
-
-canvas.addEventListener('pointerdown', e => {
-  if (!img) return;
-  dragging = true;
-  const p = getPoint(e);
-  dragStart = { x: p.x - pos.x, y: p.y - pos.y };
-  canvas.setPointerCapture(e.pointerId);
-});
-canvas.addEventListener('pointermove', e => {
-  if (!dragging) return;
-  const p = getPoint(e);
-  pos.x = p.x - dragStart.x;
-  pos.y = p.y - dragStart.y;
-});
-canvas.addEventListener('pointerup', () => { dragging = false; });
-canvas.addEventListener('pointercancel', () => { dragging = false; });
-
-// Pinch-to-zoom
-let lastDist = 0;
-canvas.addEventListener('touchstart', e => {
-  if (e.touches.length === 2) {
-    lastDist = Math.hypot(
-      e.touches[0].clientX - e.touches[1].clientX,
-      e.touches[0].clientY - e.touches[1].clientY
-    );
-  }
-}, { passive: true });
-canvas.addEventListener('touchmove', e => {
-  if (e.touches.length === 2) {
-    const dist = Math.hypot(
-      e.touches[0].clientX - e.touches[1].clientX,
-      e.touches[0].clientY - e.touches[1].clientY
-    );
-    const delta = dist / lastDist;
-    scale = Math.max(0.05, Math.min(5, scale * delta));
-    const pct = Math.round(scale * 100);
-    document.getElementById('scale-slider').value = Math.min(pct, 300);
-    document.getElementById('scale-val').textContent = pct + '%';
-    lastDist = dist;
-    e.preventDefault();
-  }
-}, { passive: false });
-
-// ── EXPORTAÇÃO INTELIGENTE COM GRELHA (GRID) ATUALIZADA ──
-document.getElementById('snap-btn').addEventListener('click', () => {
-  if (!img) return;
-
-  if (isPaintPreview) {
-    const w = img.naturalWidth;
-    const h = img.naturalHeight;
-    const factor = (Math.abs(tiltValue) / 100) * 0.85;
-    const stretchTop = tiltValue >= 0;
-    
-    // Calcula a altura distorcida
-    let totalH = 0;
-    for (let sy = h - 1; sy >= 0; sy -= 1) {
-      const pct = stretchTop ? (h - sy) / h : sy / h;
-      const stretch = 1 / (1 - pct * factor);
-      totalH += 1 * stretch * scale;
-    }
-    
-    // Calcula a largura dependendo de que lado foi esticado
-    const maxStretch = 1 / (1 - factor);
-    const topW = (stretchTop ? w * maxStretch : w) * scale;
-    const bottomW = (stretchTop ? w : w * maxStretch) * scale;
-
-    const rotRad = rotation * Math.PI / 180;
-    const skewRad = skewY * Math.PI / 180;
-
-    function transformPoint(px, py) {
-      let x = flipped ? -px : px;
-      let y = py;
-      let sx = x + y * Math.tan(skewRad);
-      let sy = y;
-      let rx = sx * Math.cos(rotRad) - sy * Math.sin(rotRad);
-      let ry = sx * Math.sin(rotRad) + sy * Math.cos(rotRad);
-      return { x: rx, y: ry };
-    }
-
-    // Calcula a bounding box
-    const pts = [
-      transformPoint(-bottomW/2, totalH/2),   // Fundo-Esquerda
-      transformPoint(bottomW/2, totalH/2),    // Fundo-Direita
-      transformPoint(-topW/2, -totalH/2),     // Topo-Esquerda
-      transformPoint(topW/2, -totalH/2)       // Topo-Direita
-    ];
-
-    const minX = Math.min(...pts.map(p => p.x));
-    const maxX = Math.max(...pts.map(p => p.x));
-    const minY = Math.min(...pts.map(p => p.y));
-    const maxY = Math.max(...pts.map(p => p.y));
-
-    const padding = 60;
-    const expWidth = Math.ceil(maxX - minX) + padding;
-    const expHeight = Math.ceil(maxY - minY) + padding;
-
-    const expCanvas = document.createElement('canvas');
-    expCanvas.width = expWidth;
-    expCanvas.height = expHeight;
-    const eCtx = expCanvas.getContext('2d');
-    
-    eCtx.fillStyle = '#ffffff';
-    eCtx.fillRect(0, 0, expWidth, expHeight);
-    
-    const posX = -minX + (padding / 2);
-    const posY = -minY + (padding / 2);
-
-    // Desenha em alta definição (step = 1)
-    drawAnamorphicToContext(eCtx, img, posX, posY, scale, rotation, skewY, tiltValue, true);
-    
-    // Desenha a Grelha
-    eCtx.strokeStyle = 'rgba(0, 0, 0, 0.4)';
-    eCtx.lineWidth = Math.max(1.5, expWidth / 600);
-    
-    const colunas = 12;
-    const tamanhoQuadrado = expWidth / colunas;
-    
-    for (let x = 0; x <= expWidth; x += tamanhoQuadrado) {
-      eCtx.beginPath(); eCtx.moveTo(x, 0); eCtx.lineTo(x, expHeight); eCtx.stroke();
-    }
-    for (let y = 0; y <= expHeight; y += tamanhoQuadrado) {
-      eCtx.beginPath(); eCtx.moveTo(0, y); eCtx.lineTo(expWidth, y); eCtx.stroke();
-    }
-    eCtx.strokeRect(0, 0, expWidth, expHeight);
-    
-    const link = document.createElement('a');
-    link.download = 'molde-anamorfico-3d-grelha.png';
-    link.href = expCanvas.toDataURL('image/png');
-    link.click();
-    
-    alert("Molde anamórfico invertido guardado! A imagem e a grelha foram distorcidas matematicamente para impressão.");
-
+previewBtn.addEventListener('click', () => {
+  isPlanView = !isPlanView;
+  if (isPlanView) {
+    previewBtn.classList.add('active');
+    camLabel.textContent = 'PLANTA DE CHÃO';
+    camLabel.style.background = '#0066ff';
   } else {
-    // MODO AR: Salva a visão da Câmara normal
-    const snap = document.createElement('canvas');
-    snap.width = canvas.width;
-    snap.height = canvas.height;
-    const sctx = snap.getContext('2d');
-    
-    if(video.readyState === video.HAVE_ENOUGH_DATA) {
-      sctx.drawImage(video, 0, 0, snap.width, snap.height);
-    } else {
-      sctx.fillStyle = '#0a0a0a';
-      sctx.fillRect(0, 0, snap.width, snap.height);
-    }
-    
-    sctx.drawImage(canvas, 0, 0);
-    
-    const link = document.createElement('a');
-    link.download = 'anamorphic-ar-preview.png';
-    link.href = snap.toDataURL('image/png');
-    link.click();
+    previewBtn.classList.remove('active');
+    camLabel.textContent = 'VISTA DO ARTISTA';
+    camLabel.style.background = 'rgba(255,80,80,0.85)';
   }
 });
 
-// ── START ──
-startCamera();
+// ── EXPORTAR MOLDE EM ALTA RESOLUÇÃO ──
+document.getElementById('snap-btn').addEventListener('click', () => {
+  if (!originalImg) return;
+
+  const maxZ = d_dist * (h_obj / (h_eye - h_obj));
+  const maxW_factor = h_eye / (h_eye - h_obj);
+  const w_obj = h_obj * (originalImg.naturalWidth / originalImg.naturalHeight);
+  const maxW = w_obj * maxW_factor;
+
+  // Resolução de Exportação: 300 pixéis por cada metro real
+  const pixelsPerMeter = 300; 
+  const paddingMeters = 1.5; // Margem para legibilidade
+
+  const expCanvas = document.createElement('canvas');
+  expCanvas.width = Math.ceil((maxW + paddingMeters) * pixelsPerMeter);
+  expCanvas.height = Math.ceil((maxZ + paddingMeters) * pixelsPerMeter);
+  const eCtx = expCanvas.getContext('2d');
+
+  // Desenhar a Planta Real do Chão
+  drawTopDownPlan(eCtx, expCanvas.width, expCanvas.height, maxZ, maxW, w_obj, true);
+
+  // Download
+  const link = document.createElement('a');
+  link.download = `molde_chao_${maxZ.toFixed(1)}m_por_${maxW.toFixed(1)}m.png`;
+  link.href = expCanvas.toDataURL('image/png');
+  link.click();
+
+  alert(`Molde exportado com sucesso!\nTamanho físico calculado: ${maxZ.toFixed(2)}m de profundidade.\n\nNa imagem exportada, cada quadrado da grelha representa exatos 50x50 cm no chão.`);
+});
+
+requestAnimationFrame(loop);
 </script>
 </body>
 </html>
