@@ -239,7 +239,7 @@
 
 <div id="custom-modal" class="hidden">
   <div class="modal-content">
-    <h3>✅ Exportado com Sucesso!</h3>
+    <h3>✅ Exportado em Alta Definição!</h3>
     <p id="modal-msg"></p>
     <button onclick="document.getElementById('custom-modal').classList.add('hidden')">Compreendido</button>
   </div>
@@ -407,7 +407,7 @@ panelHandle.addEventListener('click', () => {
   }
 });
 
-// Atualiza os rótulos consoante o Modo (Chão vs Muro)
+// Atualiza os rótulos consoante o Modo
 surfaceSelect.addEventListener('change', e => {
   surfaceMode = e.target.value;
   if (surfaceMode === 'floor') {
@@ -433,7 +433,6 @@ function loop() {
     return;
   }
 
-  // A dimensão virtual (h_obj) nunca pode ser maior que a distância perpendicular do observador (h_eye)
   if (h_obj >= h_eye - 0.01) {
     h_obj = Math.max(0.01, h_eye - 0.01);
     objSlider.value = h_obj;
@@ -444,15 +443,14 @@ function loop() {
 
   if (surfaceMode === 'floor') {
     const imgAspectRatio = activeImg.naturalWidth / activeImg.naturalHeight;
-    secondaryDim = h_obj * imgAspectRatio; // Width
-    maxStretch = d_dist * (h_obj / (h_eye - h_obj)); // Z Depth
-    maxScale = secondaryDim * (h_eye / (h_eye - h_obj)); // Max W
+    secondaryDim = h_obj * imgAspectRatio; 
+    maxStretch = d_dist * (h_obj / (h_eye - h_obj)); 
+    maxScale = secondaryDim * (h_eye / (h_eye - h_obj)); 
   } else {
-    // Modo Muro: h_obj agora representa a "Largura Virtual" e o esticamento é em X
     const imgAspectRatio = activeImg.naturalHeight / activeImg.naturalWidth;
-    secondaryDim = h_obj * imgAspectRatio; // Height
-    maxStretch = d_dist * (h_obj / (h_eye - h_obj)); // X Length along wall
-    maxScale = secondaryDim * (h_eye / (h_eye - h_obj)); // Max H
+    secondaryDim = h_obj * imgAspectRatio; 
+    maxStretch = d_dist * (h_obj / (h_eye - h_obj)); 
+    maxScale = secondaryDim * (h_eye / (h_eye - h_obj)); 
   }
 
   outLen.textContent = maxStretch < 1 ? (maxStretch * 100).toFixed(1) + ' cm' : maxStretch.toFixed(2) + ' m';
@@ -474,15 +472,22 @@ function loop() {
   requestAnimationFrame(loop);
 }
 
+// ── O NOVO MOTOR DE RENDERIZAÇÃO HIGH-DEFINITION ──
 function drawTopDownPlan(context, viewW, viewH, maxStretch, maxScale, secondaryDim, isExport) {
   const isClean = cleanExportCheckbox.checked;
   const isFloor = surfaceMode === 'floor';
   
-  // Em modo muro, maxStretch = largura X, maxScale = altura Y
   const viewPortW = isFloor ? maxScale : maxStretch;
   const viewPortH = isFloor ? maxStretch : maxScale;
   
-  const pixelsPerMeter = isExport ? 300 : Math.min(viewW * 0.8 / viewPortW, viewH * 0.7 / viewPortH);
+  // Cálculo de densidade de pixéis. Quando exporta, força altíssima resolução.
+  let pixelsPerMeter;
+  if (isExport) {
+      pixelsPerMeter = viewW / (viewPortW + 0.5); // 0.5 é o padding. Isto garante a resolução gigante.
+  } else {
+      pixelsPerMeter = Math.min(viewW * 0.8 / viewPortW, viewH * 0.7 / viewPortH);
+  }
+
   const canvasW = isExport ? viewW : canvas.width;
   const canvasH = isExport ? viewH : canvas.height;
   
@@ -494,74 +499,90 @@ function drawTopDownPlan(context, viewW, viewH, maxStretch, maxScale, secondaryD
     context.fillRect(0, 0, canvasW, canvasH);
   }
 
+  const centerX = canvasW / 2;
+  const baseY = isExport ? canvasH - (0.25 * pixelsPerMeter) : canvasH - 200;
+
   const imgW = activeImg.naturalWidth;
   const imgH = activeImg.naturalHeight;
+  
+  // Aumentei massivamente os passos na exportação (até 3000) para eliminar serrilhado (anti-aliasing)
+  const steps = isExport ? 3000 : 500;
 
   if (isFloor) {
-    // ─── LÓGICA DO CHÃO (Esticamento Y) ───
-    const centerX = canvasW / 2;
-    const baseY = isExport ? canvasH - (0.5 * pixelsPerMeter) : canvasH - 200;
-    const steps = isExport ? imgH : Math.min(imgH, 600);
-
+    // ── LÓGICA DO CHÃO (Fatiamento Y com Interpolação Sub-pixel) ──
     for (let row = 0; row < steps; row++) {
       const pct1 = row / steps;
       const pct2 = (row + 1) / steps;
+      
       const y_virt1 = h_obj * pct1;
       const y_virt2 = h_obj * pct2;
+      
       const z1 = d_dist * (y_virt1 / (h_eye - y_virt1));
       const z2 = d_dist * (y_virt2 / (h_eye - y_virt2));
       const s_factor = h_eye / (h_eye - y_virt1);
+      
       const sliceW = secondaryDim * s_factor * pixelsPerMeter;
+      const sliceZ_start = z1 * pixelsPerMeter;
+      const sliceZ_end = z2 * pixelsPerMeter;
       
-      const sy = imgH - 1 - Math.floor((row / steps) * imgH);
-      const sh = Math.max(1, Math.floor(imgH / steps));
+      // Matemática Sub-pixel precisa para evitar cortes
+      const sy = imgH - (pct2 * imgH);
+      const sh = (pct2 - pct1) * imgH;
       
-      context.drawImage(activeImg, 0, sy, imgW, sh, centerX - (sliceW / 2), baseY - (z2 * pixelsPerMeter), sliceW, ((z2 - z1) * pixelsPerMeter) + (isExport ? 0.5 : 1.5));
+      const dx = centerX - (sliceW / 2);
+      const dy = baseY - sliceZ_end;
+      // Adicionada sobreposição milimétrica para evitar linhas brancas no export
+      const dh = (sliceZ_end - sliceZ_start) + (isExport ? 1.0 : 1.5);
+
+      context.drawImage(activeImg, 0, sy, imgW, sh, dx, dy, sliceW, dh);
     }
-
-    if (!isClean) drawGrid(context, centerX, baseY, maxStretch, maxScale, pixelsPerMeter, isExport, true);
-    drawAxes(context, centerX, baseY, maxStretch, maxScale, pixelsPerMeter, isExport, true);
-
   } else {
-    // ─── LÓGICA DO MURO (Esticamento X) ───
+    // ── LÓGICA DO MURO (Fatiamento X com Interpolação Sub-pixel) ──
     const isRight = surfaceMode === 'wall_right';
     const centerY = canvasH / 2;
-    // Se for muro_direito (visto da direita), o desenho começa na direita e vai para a esquerda
-    const baseX = isExport ? (isRight ? canvasW - (1.0 * pixelsPerMeter) : 1.0 * pixelsPerMeter) : (isRight ? canvasW - 100 : 100);
-    const steps = isExport ? imgW : Math.min(imgW, 600);
+    const baseX = isExport ? (isRight ? canvasW - (0.25 * pixelsPerMeter) : 0.25 * pixelsPerMeter) : (isRight ? canvasW - 100 : 100);
 
     for (let col = 0; col < steps; col++) {
       const pct1 = col / steps;
       const pct2 = (col + 1) / steps;
-      const x_virt1 = h_obj * pct1; // h_obj é a "Largura Virtual" no modo muro
+      
+      const x_virt1 = h_obj * pct1; 
       const x_virt2 = h_obj * pct2;
+      
       const z1 = d_dist * (x_virt1 / (h_eye - x_virt1));
       const z2 = d_dist * (x_virt2 / (h_eye - x_virt2));
       const s_factor = h_eye / (h_eye - x_virt1);
+      
       const sliceH = secondaryDim * s_factor * pixelsPerMeter;
       
-      // Se estamos na direita, o pixel mais próximo de nós (X=0 real) é o pixel da direita da imagem (imgW)
-      const sx = isRight ? imgW - 1 - Math.floor((col / steps) * imgW) : Math.floor((col / steps) * imgW);
-      const sw = Math.max(1, Math.floor(imgW / steps));
+      const sx = isRight ? imgW - (pct2 * imgW) : pct1 * imgW;
+      const sw = (pct2 - pct1) * imgW;
       
       const px_start = z1 * pixelsPerMeter;
       const px_end = z2 * pixelsPerMeter;
       
       const dx = isRight ? baseX - px_end : baseX + px_start;
-      context.drawImage(activeImg, sx, 0, sw, imgH, dx, centerY - (sliceH / 2), (px_end - px_start) + (isExport ? 0.5 : 1.5), sliceH);
-    }
+      const dw = (px_end - px_start) + (isExport ? 1.0 : 1.5);
 
-    if (!isClean) drawGrid(context, baseX, centerY, maxStretch, maxScale, pixelsPerMeter, isExport, false, isRight);
-    drawAxes(context, baseX, centerY, maxStretch, maxScale, pixelsPerMeter, isExport, false, isRight);
+      context.drawImage(activeImg, sx, 0, sw, imgH, dx, centerY - (sliceH / 2), dw, sliceH);
+    }
   }
+
+  // Desenhar Grelha e Eixos com Tamanho de Fonte Adaptável para Alta Resolução
+  const baseFontSize = isExport ? Math.max(24, Math.floor(canvasW * 0.015)) : 10;
+  const gridFontSize = isExport ? Math.max(20, Math.floor(canvasW * 0.012)) : 10;
+  const textOffset = isExport ? gridFontSize + 15 : 20;
+
+  if (!isClean) drawGrid(context, isFloor ? centerX : (isExport ? (surfaceMode==='wall_right' ? canvasW - (0.25*pixelsPerMeter) : 0.25*pixelsPerMeter) : (surfaceMode==='wall_right'?canvasW-100:100)), isFloor ? baseY : canvasH/2, maxStretch, maxScale, pixelsPerMeter, isExport, isFloor, surfaceMode==='wall_right', gridFontSize, textOffset);
+  
+  drawAxes(context, isFloor ? centerX : (isExport ? (surfaceMode==='wall_right' ? canvasW - (0.25*pixelsPerMeter) : 0.25*pixelsPerMeter) : (surfaceMode==='wall_right'?canvasW-100:100)), isFloor ? baseY : canvasH/2, maxStretch, maxScale, pixelsPerMeter, isExport, isFloor, surfaceMode==='wall_right', baseFontSize);
 }
 
-// Função Auxiliar: Desenhar Grelha Dinâmica
-function drawGrid(context, cx, cy, maxZ, maxW, ppm, isExport, isFloor, isRight=true) {
+function drawGrid(context, cx, cy, maxZ, maxW, ppm, isExport, isFloor, isRight, fontSize, offset) {
   const gridPx = gridSizeMeters * ppm;
   context.strokeStyle = isExport ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.3)';
-  context.lineWidth = isExport ? 2 : 1;
-  context.font = isExport ? '16px Arial' : '10px Arial';
+  context.lineWidth = isExport ? Math.max(2, ppm*0.005) : 1;
+  context.font = `${fontSize}px Arial`;
   context.fillStyle = isExport ? '#000' : '#fff';
   context.textAlign = "center";
 
@@ -570,16 +591,15 @@ function drawGrid(context, cx, cy, maxZ, maxW, ppm, isExport, isFloor, isRight=t
     const numCols = Math.ceil((maxW / 2) / gridSizeMeters) + 1;
     for (let i = -numCols; i <= numCols; i++) {
       context.beginPath(); context.moveTo(cx + (i * gridPx), cy - (numRows * gridPx)); context.lineTo(cx + (i * gridPx), cy + gridPx); context.stroke();
-      if (isExport && i !== 0) context.fillText((Math.abs(i)*gridSizeMeters).toFixed(1)+"m", cx + (i * gridPx), cy + gridPx + 20);
+      if (isExport && i !== 0) context.fillText((Math.abs(i)*gridSizeMeters).toFixed(1)+"m", cx + (i * gridPx), cy + gridPx + offset);
     }
     for (let i = -1; i <= numRows; i++) {
       context.beginPath(); context.moveTo(cx - (numCols * gridPx), cy - (i * gridPx)); context.lineTo(cx + (numCols * gridPx), cy - (i * gridPx)); context.stroke();
       if (isExport && i >= 0) {
-        context.textAlign = "right"; context.fillText((i*gridSizeMeters).toFixed(1)+"m", cx - (numCols * gridPx) - 10, cy - (i * gridPx) + 5);
+        context.textAlign = "right"; context.fillText((i*gridSizeMeters).toFixed(1)+"m", cx - (numCols * gridPx) - 10, cy - (i * gridPx) + (fontSize/3));
       }
     }
   } else {
-    // Muro Grid
     const numCols = Math.ceil(maxZ / gridSizeMeters) + 1;
     const numRows = Math.ceil((maxW / 2) / gridSizeMeters) + 1;
     const dir = isRight ? -1 : 1;
@@ -587,43 +607,42 @@ function drawGrid(context, cx, cy, maxZ, maxW, ppm, isExport, isFloor, isRight=t
     for (let i = -1; i <= numCols; i++) {
       const x = cx + (i * gridPx * dir);
       context.beginPath(); context.moveTo(x, cy - (numRows * gridPx)); context.lineTo(x, cy + (numRows * gridPx)); context.stroke();
-      if (isExport && i >= 0) context.fillText((i*gridSizeMeters).toFixed(1)+"m", x, cy + (numRows * gridPx) + 20);
+      if (isExport && i >= 0) context.fillText((i*gridSizeMeters).toFixed(1)+"m", x, cy + (numRows * gridPx) + offset);
     }
     for (let i = -numRows; i <= numRows; i++) {
       context.beginPath(); context.moveTo(cx + gridPx * (isRight?1:-1), cy + (i * gridPx)); context.lineTo(cx + (numCols * gridPx * dir), cy + (i * gridPx)); context.stroke();
       if (isExport && i !== 0) {
         context.textAlign = isRight ? "left" : "right"; 
-        context.fillText((Math.abs(i)*gridSizeMeters).toFixed(1)+"m", cx + (isRight ? 10 : -10), cy + (i * gridPx) + 5);
+        context.fillText((Math.abs(i)*gridSizeMeters).toFixed(1)+"m", cx + (isRight ? 10 : -10), cy + (i * gridPx) + (fontSize/3));
       }
     }
   }
 }
 
-// Função Auxiliar: Desenhar Eixos Vermelhos
-function drawAxes(context, cx, cy, maxZ, maxW, ppm, isExport, isFloor, isRight=true) {
+function drawAxes(context, cx, cy, maxZ, maxW, ppm, isExport, isFloor, isRight, fontSize) {
   context.strokeStyle = 'rgba(255, 0, 0, 0.8)';
-  context.lineWidth = isExport ? 3 : 1.5;
+  context.lineWidth = isExport ? Math.max(3, ppm*0.008) : 1.5;
   context.beginPath();
   
   if (isFloor) {
-    context.moveTo(cx, cy - (maxZ * ppm)); context.lineTo(cx, cy + (0.2 * ppm)); context.stroke();
+    context.moveTo(cx, cy - (maxZ * ppm)); context.lineTo(cx, cy + (0.1 * ppm)); context.stroke();
     context.beginPath(); context.moveTo(cx - (maxW/2 * ppm), cy); context.lineTo(cx + (maxW/2 * ppm), cy); context.stroke();
     if (isExport && cleanExportCheckbox.checked) {
-      context.font = 'bold 24px Arial'; context.fillStyle = '#ff0000'; context.textAlign = 'left';
-      context.fillText(`Altura Virtual 3D: ${h_obj.toFixed(2)}m`, cx + 20, cy - (maxZ/2 * ppm));
+      context.font = `bold ${fontSize}px Arial`; context.fillStyle = '#ff0000'; context.textAlign = 'left';
+      context.fillText(`Altura Virtual 3D: ${h_obj.toFixed(2)}m`, cx + 30, cy - (maxZ/2 * ppm));
     }
   } else {
     const dir = isRight ? -1 : 1;
     context.moveTo(cx, cy - (maxW/2 * ppm)); context.lineTo(cx, cy + (maxW/2 * ppm)); context.stroke();
-    context.beginPath(); context.moveTo(cx + (0.2 * ppm * (isRight?1:-1)), cy); context.lineTo(cx + (maxZ * ppm * dir), cy); context.stroke();
+    context.beginPath(); context.moveTo(cx + (0.1 * ppm * (isRight?1:-1)), cy); context.lineTo(cx + (maxZ * ppm * dir), cy); context.stroke();
     if (isExport && cleanExportCheckbox.checked) {
-      context.font = 'bold 24px Arial'; context.fillStyle = '#ff0000'; context.textAlign = isRight ? 'right' : 'left';
-      context.fillText(`Largura Virtual 3D: ${h_obj.toFixed(2)}m`, cx + ((maxZ/2 * ppm)*dir), cy - 20);
+      context.font = `bold ${fontSize}px Arial`; context.fillStyle = '#ff0000'; context.textAlign = isRight ? 'right' : 'left';
+      context.fillText(`Largura Virtual 3D: ${h_obj.toFixed(2)}m`, cx + ((maxZ/2 * ppm)*dir), cy - 30);
     }
   }
 }
 
-// ── LÓGICA DE UPLOAD, SLIDERS E EVENTOS GERAIS ──
+// ── LÓGICA DE UPLOAD E BACKGROUND REMOVAL ──
 function processBackgroundRemoval(imgSource) {
   return new Promise((resolve) => {
     const c = document.createElement('canvas');
@@ -708,6 +727,7 @@ previewBtn.addEventListener('click', () => {
   }
 });
 
+// EXPORTAÇÃO HIGH-DEFINITION
 document.getElementById('snap-btn').addEventListener('click', () => {
   if (!activeImg) return;
   const isFloor = surfaceMode === 'floor';
@@ -728,25 +748,36 @@ document.getElementById('snap-btn').addEventListener('click', () => {
   const viewPortW = isFloor ? maxScale : maxStretch;
   const viewPortH = isFloor ? maxStretch : maxScale;
 
-  const pixelsPerMeter = 300; 
-  const paddingMeters = 1.5;
+  // NOVO MOTOR DE RESOLUÇÃO: Força qualidade Extrema (base 4000px por metro)
+  let exportPPM = 4000; 
+  const paddingMeters = 0.5; // Margem
+  
+  // Limite de segurança: Evita travar navegadores gerando Canvas acima de 7000px
+  const maxDimension = Math.max(viewPortW + paddingMeters, viewPortH + paddingMeters);
+  if (maxDimension * exportPPM > 7000) {
+      exportPPM = 7000 / maxDimension;
+  }
 
   const expCanvas = document.createElement('canvas');
-  expCanvas.width = Math.ceil((viewPortW + paddingMeters) * pixelsPerMeter);
-  expCanvas.height = Math.ceil((viewPortH + paddingMeters) * pixelsPerMeter);
+  expCanvas.width = Math.ceil((viewPortW + paddingMeters) * exportPPM);
+  expCanvas.height = Math.ceil((viewPortH + paddingMeters) * exportPPM);
   const eCtx = expCanvas.getContext('2d');
+  
+  // Ativação profunda de Anti-Aliasing no desenho do Canvas
+  eCtx.imageSmoothingEnabled = true;
+  eCtx.imageSmoothingQuality = 'high';
 
   drawTopDownPlan(eCtx, expCanvas.width, expCanvas.height, maxStretch, maxScale, secondaryDim, true);
 
   const link = document.createElement('a');
   let typeName = isFloor ? "chao" : "muro";
-  link.download = isClean ? `molde_${typeName}_limpo.png` : `molde_${typeName}_grade_${gridSizeMeters*100}cm.png`;
+  link.download = isClean ? `molde_${typeName}_Alta_Resolucao.png` : `molde_${typeName}_grade_${gridSizeMeters*100}cm_Alta_Resolucao.png`;
   link.href = expCanvas.toDataURL('image/png');
   link.click();
 
-  let finalMsg = `O molde de ${isFloor ? 'chão' : 'parede'} foi gerado para a área de <b>${maxStretch < 1 ? (maxStretch*100).toFixed(0)+'cm' : maxStretch.toFixed(2)+'m'}</b> por <b>${maxScale < 1 ? (maxScale*100).toFixed(0)+'cm' : maxScale.toFixed(2)+'m'}</b>.<br><br>`;
-  if (isClean) finalMsg += `Imagem exportada <b>LIMPA (sem quadrados)</b> para edição e corte.`;
-  else finalMsg += `Grelha ativada: cada quadrado equivale a <b>${Math.round(gridSizeMeters * 100)} cm</b> reais.`;
+  let finalMsg = `O molde em ALTA DEFINIÇÃO foi gerado para a área de <b>${maxStretch < 1 ? (maxStretch*100).toFixed(0)+'cm' : maxStretch.toFixed(2)+'m'}</b> por <b>${maxScale < 1 ? (maxScale*100).toFixed(0)+'cm' : maxScale.toFixed(2)+'m'}</b>.<br><br>`;
+  if (isClean) finalMsg += `Imagem pronta para impressão limpa no Corel (Serrilhados removidos e resolução gigante ativada!).`;
+  else finalMsg += `A grelha tem escala real.`;
   
   showModalMessage(finalMsg);
 });
