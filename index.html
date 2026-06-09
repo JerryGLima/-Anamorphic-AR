@@ -199,7 +199,7 @@
   }
   .icon-btn:active { transform: scale(0.95); }
   
-  /* Estado Ativo para os botões de ícone (ex: Remover Fundo) */
+  /* Estado Ativo para os botões de ícone */
   .icon-btn.active {
     background: #0066ff;
     border-color: #0066ff;
@@ -379,11 +379,11 @@
     </button>
     <button class="action-btn btn-preview" id="preview-btn">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
-      Molde
+      Molde 2D
     </button>
     <button class="action-btn btn-snap" id="snap-btn">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
-      Salvar
+      <span id="snap-label">Salvar</span>
     </button>
   </div>
 </div>
@@ -401,12 +401,13 @@ const fileInput = document.getElementById('file-input');
 const previewBtn = document.getElementById('preview-btn');
 const camLabel = document.getElementById('cam-label');
 const magicBtn = document.getElementById('magic-btn');
+const snapLabel = document.getElementById('snap-label');
 
 // Controle de Imagem
 let originalImg = null;
-let processedImg = null; // Guarda a imagem sem fundo
+let processedImg = null; 
 let isBgRemoved = false;
-let img = null; // A imagem que está sendo desenhada no momento
+let img = null; 
 
 let pos = { x: 0, y: 0 };
 let scale = 1;
@@ -450,14 +451,15 @@ function loop() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   if (isPaintPreview) {
-    drawGrid();
+    drawGridScreen();
   }
 
   if (img) drawImage();
   requestAnimationFrame(loop);
 }
 
-function drawGrid() {
+// Grelha exibida no ecrã do telemóvel (Apenas visualização)
+function drawGridScreen() {
   ctx.fillStyle = '#f0f0f0';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -499,7 +501,7 @@ function drawImage() {
   ctx.restore();
 }
 
-// ── REMOÇÃO INTELIGENTE DE FUNDO (CÓDIGO NOVO) ──
+// ── REMOÇÃO INTELIGENTE DE FUNDO ──
 function processBackgroundRemoval(imgSource) {
   return new Promise((resolve) => {
     const c = document.createElement('canvas');
@@ -511,21 +513,18 @@ function processBackgroundRemoval(imgSource) {
     const imgData = tCtx.getImageData(0, 0, c.width, c.height);
     const data = imgData.data;
 
-    // Amostra a cor de fundo baseado no pixel superior esquerdo
     const bgR = data[0], bgG = data[1], bgB = data[2];
-    const tolerance = 45; // Tolerância para remover artefatos e variações de tom
+    const tolerance = 45; 
 
     for (let i = 0; i < data.length; i += 4) {
       const r = data[i], g = data[i+1], b = data[i+2], a = data[i+3];
       if (a === 0) continue;
 
-      // Calcula a distância matemática entre as cores
       const dist = Math.sqrt((r-bgR)**2 + (g-bgG)**2 + (b-bgB)**2);
 
       if (dist < tolerance) {
-        data[i+3] = 0; // Transparente total
+        data[i+3] = 0; 
       } else if (dist < tolerance + 20) {
-        // Suavização das bordas (Anti-aliasing simples)
         data[i+3] = Math.floor(255 * ((dist - tolerance) / 20));
       }
     }
@@ -537,26 +536,19 @@ function processBackgroundRemoval(imgSource) {
   });
 }
 
-// Toggle para Remover/Restaurar o fundo
 magicBtn.addEventListener('click', async function() {
   if (!originalImg) return;
   
   if (isBgRemoved) {
-    // Restaura a imagem original
     isBgRemoved = false;
     img = originalImg;
     this.classList.remove('active');
   } else {
-    // Aplica a remoção
     this.classList.add('active'); 
-    
-    // Pequeno delay para a UI pintar o botão de azul antes de travar processando
     await new Promise(r => setTimeout(r, 20));
-    
     if (!processedImg) {
       processedImg = await processBackgroundRemoval(originalImg);
     }
-    
     isBgRemoved = true;
     img = processedImg;
   }
@@ -570,11 +562,13 @@ previewBtn.addEventListener('click', () => {
     previewBtn.classList.add('active');
     camLabel.textContent = 'MOLDE 2D';
     camLabel.style.background = '#0066ff';
+    snapLabel.textContent = 'Imprimir'; // Atualiza nome do botão de salvar
   } else {
     video.style.opacity = '1';
     previewBtn.classList.remove('active');
     camLabel.textContent = 'CAM AO VIVO';
     camLabel.style.background = 'rgba(255,80,80,0.85)';
+    snapLabel.textContent = 'Salvar';
   }
 });
 
@@ -586,7 +580,6 @@ fileInput.addEventListener('change', e => {
   reader.onload = ev => {
     const image = new Image();
     image.onload = () => {
-      // Reseta os estados de imagem
       originalImg = image;
       processedImg = null; 
       isBgRemoved = false;
@@ -630,12 +623,7 @@ document.getElementById('rot-slider').addEventListener('input', e => {
   document.getElementById('rot-val').textContent = e.target.value + '°';
 });
 
-// ── FLIP ──
-document.getElementById('flip-btn').addEventListener('click', () => {
-  flipped = !flipped;
-});
-
-// ── OPACITY CYCLE ──
+document.getElementById('flip-btn').addEventListener('click', () => { flipped = !flipped; });
 document.getElementById('opacity-btn').addEventListener('click', () => {
   opacityIndex = (opacityIndex + 1) % opacities.length;
   opacity = opacities[opacityIndex];
@@ -689,23 +677,120 @@ canvas.addEventListener('touchmove', e => {
   }
 }, { passive: false });
 
-// ── SCREENSHOT ──
+// ── EXPORTAÇÃO INTELIGENTE COM GRELHA (GRID) ──
 document.getElementById('snap-btn').addEventListener('click', () => {
-  const snap = document.createElement('canvas');
-  snap.width = canvas.width;
-  snap.height = canvas.height;
-  const sctx = snap.getContext('2d');
-  
-  if (!isPaintPreview) {
+  if (!img) return;
+
+  if (isPaintPreview) {
+    // MODO MOLDE: Exporta o desenho distorcido e desenha a grelha de transferência por cima
+    const w = img.naturalWidth;
+    const h = img.naturalHeight;
+    const skewRad = skewY * Math.PI / 180;
+    const rotRad = rotation * Math.PI / 180;
+    
+    // Função matemática para calcular a "Caixa" (Bounding Box) do desenho distorcido
+    function transform(px, py) {
+        let x = flipped ? -px : px;
+        let y = py;
+        let sx = x;
+        let sy = x * Math.tan(skewRad) + y / Math.cos(skewRad);
+        let rx = sx * Math.cos(rotRad) - sy * Math.sin(rotRad);
+        let ry = sx * Math.sin(rotRad) + sy * Math.cos(rotRad);
+        return { x: rx, y: ry };
+    }
+    
+    // Calcula os 4 cantos da imagem após a distorção
+    const pts = [
+        transform(-w/2, -h/2),
+        transform(w/2, -h/2),
+        transform(-w/2, h/2),
+        transform(w/2, h/2)
+    ];
+    
+    // Encontra o tamanho exato necessário para a folha
+    const minX = Math.min(...pts.map(p => p.x));
+    const maxX = Math.max(...pts.map(p => p.x));
+    const minY = Math.min(...pts.map(p => p.y));
+    const maxY = Math.max(...pts.map(p => p.y));
+    
+    const expWidth = Math.ceil(maxX - minX);
+    const expHeight = Math.ceil(maxY - minY);
+    
+    // Cria um canvas temporário exatamente do tamanho da distorção
+    const expCanvas = document.createElement('canvas');
+    expCanvas.width = expWidth;
+    expCanvas.height = expHeight;
+    const eCtx = expCanvas.getContext('2d');
+    
+    // 1. Fundo branco limpo
+    eCtx.fillStyle = '#ffffff';
+    eCtx.fillRect(0, 0, expWidth, expHeight);
+    
+    eCtx.save(); // Salva o contexto antes de distorcer
+    
+    // 2. Move o centro e aplica as matrizes de distorção anamórfica
+    eCtx.translate(-minX, -minY);
+    eCtx.rotate(rotRad);
+    eCtx.transform(1, Math.tan(skewRad), 0, 1 / Math.cos(skewRad), 0, 0);
+    if (flipped) {
+        eCtx.scale(-1, 1);
+    }
+    
+    // 3. Desenha a imagem em alta resolução
+    eCtx.drawImage(img, -w/2, -h/2, w, h);
+    
+    eCtx.restore(); // Restaura o contexto para desenhar reto por cima
+    
+    // 4. DESENHA A GRELHA (GRID) POR CIMA DE TUDO (Igual à imagem de referência)
+    eCtx.strokeStyle = 'rgba(0, 0, 0, 0.5)'; // Cor da grelha semi-transparente
+    eCtx.lineWidth = Math.max(1.5, expWidth / 600); // Espessura proporcional ao tamanho
+    
+    // Divide a largura em quadrados idênticos (ex: 12 colunas de quadrados perfeitos)
+    const colunas = 12;
+    const tamanhoQuadrado = expWidth / colunas;
+    
+    // Linhas Verticais
+    for (let x = 0; x <= expWidth; x += tamanhoQuadrado) {
+        eCtx.beginPath();
+        eCtx.moveTo(x, 0);
+        eCtx.lineTo(x, expHeight);
+        eCtx.stroke();
+    }
+    
+    // Linhas Horizontais
+    for (let y = 0; y <= expHeight; y += tamanhoQuadrado) {
+        eCtx.beginPath();
+        eCtx.moveTo(0, y);
+        eCtx.lineTo(expWidth, y);
+        eCtx.stroke();
+    }
+    
+    // Borda final em redor da imagem
+    eCtx.strokeRect(0, 0, expWidth, expHeight);
+    
+    // Faz o download
+    const link = document.createElement('a');
+    link.download = 'molde-impressao-com-grelha.png';
+    link.href = expCanvas.toDataURL('image/png');
+    link.click();
+    
+    alert("Molde distorcido com grelha de transferência guardado em ALTA RESOLUÇÃO!");
+
+  } else {
+    // MODO AR: Salva a visão da Câmera normal
+    const snap = document.createElement('canvas');
+    snap.width = canvas.width;
+    snap.height = canvas.height;
+    const sctx = snap.getContext('2d');
+    
     sctx.drawImage(video, 0, 0, snap.width, snap.height);
+    sctx.drawImage(canvas, 0, 0);
+    
+    const link = document.createElement('a');
+    link.download = 'anamorphic-ar-preview.png';
+    link.href = snap.toDataURL('image/png');
+    link.click();
   }
-  
-  sctx.drawImage(canvas, 0, 0);
-  
-  const link = document.createElement('a');
-  link.download = isPaintPreview ? 'molde-anamorfico.png' : 'anamorphic-ar-preview.png';
-  link.href = snap.toDataURL('image/png');
-  link.click();
 });
 
 // ── START ──
