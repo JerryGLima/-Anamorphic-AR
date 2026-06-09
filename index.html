@@ -76,22 +76,38 @@
   .upload-btn:active { opacity: 0.8; }
   #file-input { display: none; }
 
-  /* ── PAINEL DE CONTROLOS (FÍSICA) ── */
+  /* ── DICA VISUAL ── */
+  #hint {
+    position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    z-index: 5; background: rgba(0,0,0,0.6); backdrop-filter: blur(6px);
+    border: 1px solid rgba(255,255,255,0.15); border-radius: 16px;
+    padding: 16px 20px; font-size: 13px; color: rgba(255,255,255,0.85);
+    text-align: center; pointer-events: none; transition: opacity .4s;
+    opacity: 0;
+  }
+
+  /* ── PAINEL DE CONTROLOS ── */
   #bottom-panel {
     position: fixed; bottom: 0; left: 0; right: 0; z-index: 10;
-    padding: 16px; background: linear-gradient(to top, rgba(0,0,0,0.95) 50%, rgba(0,0,0,0.7), transparent);
+    padding: 12px 16px 20px; background: linear-gradient(to top, rgba(0,0,0,0.95) 60%, rgba(0,0,0,0.7), transparent);
     display: flex; flex-direction: column; gap: 12px;
+    max-height: 55vh; overflow-y: auto;
   }
 
   /* Painel de Métricas em Tempo Real */
   #metrics-panel {
     background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);
-    border-radius: 12px; padding: 12px; margin-bottom: 4px;
+    border-radius: 12px; padding: 10px; margin-bottom: 4px;
     display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
   }
   .metric-box { display: flex; flex-direction: column; }
   .metric-label { font-size: 10px; color: rgba(255,255,255,0.6); text-transform: uppercase; letter-spacing: 0.5px; }
-  .metric-value { font-size: 16px; font-weight: 700; color: #4CAF50; }
+  .metric-value { font-size: 15px; font-weight: 700; color: #4CAF50; }
+
+  .section-title {
+    font-size: 11px; color: #aaa; text-transform: uppercase; letter-spacing: 1px;
+    margin-top: 8px; margin-bottom: 4px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 4px;
+  }
 
   .slider-group { display: flex; flex-direction: column; gap: 6px; flex: 1; }
   .slider-group label {
@@ -101,17 +117,27 @@
   .slider-group label span { color: #fff; }
 
   input[type=range] {
-    -webkit-appearance: none; width: 100%; height: 5px;
-    border-radius: 3px; background: rgba(255,255,255,0.2); outline: none;
+    -webkit-appearance: none; width: 100%; height: 4px;
+    border-radius: 2px; background: rgba(255,255,255,0.2); outline: none; margin-bottom: 4px;
   }
   input[type=range]::-webkit-slider-thumb {
-    -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%;
+    -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%;
     background: #fff; cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,0.5);
   }
 
-  .action-row { display: flex; gap: 8px; margin-top: 8px; }
+  .icon-btn {
+    width: 44px; height: 44px; border-radius: 12px;
+    background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2);
+    color: #fff; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; flex-shrink: 0; transition: all .2s;
+  }
+  .icon-btn:active { transform: scale(0.95); }
+  .icon-btn.active { background: #0066ff; border-color: #0066ff; }
+  .icon-btn svg { width: 20px; height: 20px; pointer-events: none; }
+
+  .action-row { display: flex; gap: 8px; margin-top: 8px; flex-shrink: 0; }
   .action-btn {
-    flex: 1; height: 46px; border-radius: 12px; border: none; font-size: 13px; font-weight: 600;
+    flex: 1; height: 44px; border-radius: 12px; border: none; font-size: 13px; font-weight: 600;
     cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;
     background: rgba(255,255,255,0.15); color: #fff; border: 1px solid rgba(255,255,255,0.2);
   }
@@ -135,13 +161,15 @@
 <div id="upload-screen">
   <div class="logo-mark">📐</div>
   <h2>Projeção no Chão</h2>
-  <p>Carregue a imagem normal (frente). O sistema calculará a física ótica baseada na sua altura (ex: 1,75m) e distância.</p>
+  <p>Carregue a imagem normal (vista de frente).</p>
   <button class="upload-btn" onclick="document.getElementById('file-input').click()">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="20"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
     Escolher Imagem
   </button>
   <input type="file" id="file-input" accept="image/*">
 </div>
+
+<div id="hint">👆 Arraste para mover<br>🤏 Faça movimento de pinça para zoom</div>
 
 <div id="bottom-panel" class="hidden">
   
@@ -156,26 +184,47 @@
     </div>
   </div>
 
-  <div class="slider-group">
-    <label>Sua Altura (Olhos) <span id="eye-val">1.75 m</span></label>
-    <input type="range" id="eye-slider" min="0.50" max="2.50" value="1.75" step="0.05">
-  </div>
-  
-  <div class="slider-group">
-    <label>Distância à Base da Pintura <span id="dist-val">2.00 m</span></label>
-    <input type="range" id="dist-slider" min="0.50" max="5.00" value="2.00" step="0.10">
+  <div class="section-title">1. Enquadramento Visual (AR)</div>
+  <div style="display: flex; gap: 10px; align-items: center;">
+    <div style="display: flex; flex-direction: column; gap: 6px; flex: 1;">
+      <div class="slider-group">
+        <label>Escala <span id="scale-val">100%</span></label>
+        <input type="range" id="scale-slider" min="10" max="300" value="100" step="1">
+      </div>
+      <div class="slider-group">
+        <label>Rotação <span id="rot-val">0°</span></label>
+        <input type="range" id="rot-slider" min="-180" max="180" value="0" step="1">
+      </div>
+    </div>
+    <!-- Botão de Varinha Mágica -->
+    <div class="icon-btn" id="magic-btn" title="Remover Fundo (Automático)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"></path>
+        <path d="M22 21H7"></path>
+        <path d="m5 11 9 9"></path>
+      </svg>
+    </div>
   </div>
 
+  <div class="section-title">2. Cálculo Matemático (Metros Reais)</div>
   <div class="slider-group">
-    <label>Altura Virtual do Desenho <span id="obj-val">1.00 m</span></label>
-    <input type="range" id="obj-slider" min="0.10" max="2.40" value="1.00" step="0.05">
+    <label>A Sua Altura (Nível dos Olhos) <span id="eye-val">1.75 m</span></label>
+    <input type="range" id="eye-slider" min="0.50" max="2.50" value="1.75" step="0.05">
+  </div>
+  <div class="slider-group">
+    <label>Distância até à Base do Desenho <span id="dist-val">2.00 m</span></label>
+    <input type="range" id="dist-slider" min="0.50" max="10.00" value="2.00" step="0.10">
+  </div>
+  <div class="slider-group">
+    <label>Altura Virtual do Objeto 3D <span id="obj-val">1.00 m</span></label>
+    <input type="range" id="obj-slider" min="0.10" max="3.00" value="1.00" step="0.05">
   </div>
 
   <div class="action-row">
     <button class="action-btn btn-change" onclick="document.getElementById('file-input').click()">Trocar</button>
     <button class="action-btn btn-preview" id="preview-btn">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
-      Planta do Chão
+      Planta
     </button>
     <button class="action-btn btn-snap" id="snap-btn">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
@@ -188,15 +237,30 @@
 const video = document.getElementById('camera-view');
 const canvas = document.getElementById('overlay-canvas');
 const ctx = canvas.getContext('2d');
-let originalImg = null;
-let isPlanView = false; // Se true, mostra a vista de cima distorcida. Se false, mostra como deve parecer para o artista.
+const hintEl = document.getElementById('hint');
 
-// Variáveis do Mundo Físico
-let h_eye = 1.75;  // Altura do observador (m)
-let d_dist = 2.00; // Distância até à base do desenho (m)
-let h_obj = 1.00;  // Altura aparente do desenho (m)
+// Variáveis de Imagem
+let originalImg = null;
+let processedImg = null;
+let activeImg = null; // Imagem a ser renderizada (original ou processada)
+let isBgRemoved = false;
+let isPlanView = false; // Se true, mostra a planta. Se false, mostra a câmara.
+
+// Variáveis de Enquadramento Visual (AR)
+let pos = { x: 0, y: 0 };
+let scale = 1;
+let rotation = 0;
+let dragging = false;
+let dragStart = { x: 0, y: 0 };
+
+// Variáveis de Cálculo Físico (Metros)
+let h_eye = 1.75;  // Altura do observador
+let d_dist = 2.00; // Distância até à pintura
+let h_obj = 1.00;  // Altura do objeto 3D
 
 // Componentes UI
+const scaleSlider = document.getElementById('scale-slider');
+const rotSlider = document.getElementById('rot-slider');
 const eyeSlider = document.getElementById('eye-slider');
 const distSlider = document.getElementById('dist-slider');
 const objSlider = document.getElementById('obj-slider');
@@ -204,11 +268,12 @@ const outLen = document.getElementById('out-length');
 const outW = document.getElementById('out-width');
 const previewBtn = document.getElementById('preview-btn');
 const camLabel = document.getElementById('cam-label');
+const magicBtn = document.getElementById('magic-btn');
 
-// Inicializar Câmera
+// Inicializar Câmara
 navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
   .then(stream => { video.srcObject = stream; })
-  .catch(e => console.log('Sem câmera, fundo preto ativado.'));
+  .catch(e => console.log('Sem câmara, fundo preto ativado.'));
 
 function resizeCanvas() {
   canvas.width = window.innerWidth;
@@ -217,65 +282,56 @@ function resizeCanvas() {
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
 
-// Loop de Renderização
+// Loop de Renderização Principal
 function loop() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   
-  if (!originalImg) {
+  if (!activeImg) {
     requestAnimationFrame(loop);
     return;
   }
 
-  // Lógica de restrição física: O objeto não pode ser mais alto que a linha do horizonte dos olhos
+  // Lógica Física: O objeto não deve ser mais alto que a linha dos olhos
   if (h_obj >= h_eye - 0.05) {
     h_obj = Math.max(0.1, h_eye - 0.05);
     objSlider.value = h_obj;
     document.getElementById('obj-val').textContent = h_obj.toFixed(2) + ' m';
   }
 
-  // Cálculos Métricos
-  const imgAspectRatio = originalImg.naturalWidth / originalImg.naturalHeight;
-  const w_obj = h_obj * imgAspectRatio; // Largura aparente (virtual) base
+  // Cálculos Métricos baseados na imagem ativa
+  const imgAspectRatio = activeImg.naturalWidth / activeImg.naturalHeight;
+  const w_obj = h_obj * imgAspectRatio;
   
-  const maxZ = d_dist * (h_obj / (h_eye - h_obj)); // Comprimento projetado no chão
+  const maxZ = d_dist * (h_obj / (h_eye - h_obj));
   const maxW_factor = h_eye / (h_eye - h_obj);
-  const maxW = w_obj * maxW_factor; // Largura máxima no chão (no topo do desenho)
+  const maxW = w_obj * maxW_factor;
 
-  // Atualiza painel de métricas UI
   outLen.textContent = maxZ.toFixed(2) + ' m';
   outW.textContent = maxW.toFixed(2) + ' m';
 
   if (isPlanView) {
-    // ── VISTA DE CIMA (PLANTA/MOLDE) ──
+    // ── VISTA DE PLANTA DO CHÃO ──
     drawTopDownPlan(ctx, canvas.width, canvas.height, maxZ, maxW, w_obj, false);
   } else {
-    // ── VISTA DO ARTISTA (PREVIEW NORMAL) ──
-    // O artista de pé vê o desenho "normal". Desenha-o centrado no ecrã para servir de guia.
-    const previewScale = Math.min(canvas.width * 0.8 / originalImg.naturalWidth, canvas.height * 0.6 / originalImg.naturalHeight);
-    const pw = originalImg.naturalWidth * previewScale;
-    const ph = originalImg.naturalHeight * previewScale;
+    // ── VISTA DO ARTISTA (AR - Arrastável) ──
+    ctx.save();
+    ctx.translate(pos.x, pos.y);
+    ctx.rotate(rotation * Math.PI / 180);
     
-    ctx.globalAlpha = 0.85;
-    ctx.drawImage(originalImg, (canvas.width - pw)/2, (canvas.height - ph)/2 + 40, pw, ph);
-    ctx.globalAlpha = 1.0;
+    const w = activeImg.naturalWidth * scale;
+    const h = activeImg.naturalHeight * scale;
     
-    // Texto de aviso
-    ctx.fillStyle = "rgba(0,0,0,0.6)";
-    ctx.fillRect(0, canvas.height - 230, canvas.width, 30);
-    ctx.fillStyle = "#fff"; ctx.font = "12px sans-serif"; ctx.textAlign = "center";
-    ctx.fillText("Isto é como o desenho DEVE parecer a partir dos seus olhos.", canvas.width/2, canvas.height - 210);
+    ctx.globalAlpha = 0.85; 
+    ctx.drawImage(activeImg, -w/2, -h/2, w, h);
+    ctx.restore();
   }
 
   requestAnimationFrame(loop);
 }
 
 // ── O MOTOR DE PROJEÇÃO FÍSICA NO CHÃO ──
-// Desenha a vista superior esticada (Planta do Chão) baseada na ótica real
 function drawTopDownPlan(context, viewW, viewH, maxZ, maxW, w_obj, isExport) {
-  // Configuração de Escala (Pixéis por Metro)
-  // No ecrã, ajustamos para caber. Na exportação, usamos alta resolução.
   const pixelsPerMeter = isExport ? 300 : Math.min(viewH * 0.7 / maxZ, viewW * 0.8 / maxW);
-  
   const canvasW = isExport ? viewW : canvas.width;
   const canvasH = isExport ? viewH : canvas.height;
   
@@ -288,16 +344,13 @@ function drawTopDownPlan(context, viewW, viewH, maxZ, maxW, w_obj, isExport) {
   }
 
   const centerX = canvasW / 2;
-  const baseY = isExport ? canvasH - (0.5 * pixelsPerMeter) : canvasH - 240; // Base do desenho (onde começa)
+  const baseY = isExport ? canvasH - (0.5 * pixelsPerMeter) : canvasH - 240;
 
-  // 1. FATIAMENTO ANAMÓRFICO
-  // Em vez de distorcer com CSS/Skew, calculamos onde cada linha de pixéis da imagem cai no chão
-  const imgW = originalImg.naturalWidth;
-  const imgH = originalImg.naturalHeight;
-  const steps = isExport ? imgH : Math.min(imgH, 600); // Mais performance no ecrã, máximo detalhe na exportação
+  const imgW = activeImg.naturalWidth;
+  const imgH = activeImg.naturalHeight;
+  const steps = isExport ? imgH : Math.min(imgH, 600);
 
   for (let row = 0; row < steps; row++) {
-    // Calculamos a física para o limite inferior e superior da fatia
     const pct1 = row / steps;
     const pct2 = (row + 1) / steps;
 
@@ -313,18 +366,16 @@ function drawTopDownPlan(context, viewW, viewH, maxZ, maxW, w_obj, isExport) {
     const sliceZ_start = z1 * pixelsPerMeter;
     const sliceZ_end = z2 * pixelsPerMeter;
     
-    // Desenhamos do topo da imagem para baixo, ou seja, linha inversa
     const sy = imgH - 1 - Math.floor((row / steps) * imgH);
     const sh = Math.max(1, Math.floor(imgH / steps));
 
     const dx = centerX - (sliceW / 2);
     const dy = baseY - sliceZ_end;
-    const dh = (sliceZ_end - sliceZ_start) + (isExport ? 0.5 : 1.5); // Prevenir falhas entre fatias
+    const dh = (sliceZ_end - sliceZ_start) + (isExport ? 0.5 : 1.5);
 
-    context.drawImage(originalImg, 0, sy, imgW, sh, dx, dy, sliceW, dh);
+    context.drawImage(activeImg, 0, sy, imgW, sh, dx, dy, sliceW, dh);
   }
 
-  // 2. DESENHAR GRELHA MÉTRICA NO CHÃO (Quadrados Reais de 50cm = 0.5m)
   const gridSizeMeters = 0.5;
   const gridPx = gridSizeMeters * pixelsPerMeter;
   
@@ -334,35 +385,126 @@ function drawTopDownPlan(context, viewW, viewH, maxZ, maxW, w_obj, isExport) {
   context.fillStyle = isExport ? '#000' : '#fff';
   context.textAlign = "center";
 
-  // Calcular limites da grelha com base no tamanho do desenho
   const numRows = Math.ceil(maxZ / gridSizeMeters) + 1;
   const numCols = Math.ceil((maxW / 2) / gridSizeMeters) + 1;
 
-  // Linhas Verticais
   for (let i = -numCols; i <= numCols; i++) {
     const x = centerX + (i * gridPx);
     context.beginPath(); context.moveTo(x, baseY - (numRows * gridPx)); context.lineTo(x, baseY + gridPx); context.stroke();
-    // Legenda X
     if (isExport && i !== 0) context.fillText(Math.abs(i * 0.5) + "m", x, baseY + gridPx + 20);
   }
 
-  // Linhas Horizontais (Z/Profundidade)
   for (let i = -1; i <= numRows; i++) {
     const y = baseY - (i * gridPx);
     context.beginPath(); context.moveTo(centerX - (numCols * gridPx), y); context.lineTo(centerX + (numCols * gridPx), y); context.stroke();
-    // Legenda Z (Profundidade a partir da base)
     if (isExport && i >= 0) {
       context.textAlign = "right";
       context.fillText(parseFloat(i * 0.5).toFixed(1) + "m", centerX - (numCols * gridPx) - 10, y + 5);
     }
   }
 
-  // Linhas Centrais Vermelhas
   context.strokeStyle = 'rgba(255, 0, 0, 0.6)';
   context.lineWidth = isExport ? 3 : 1.5;
   context.beginPath(); context.moveTo(centerX, baseY - (numRows * gridPx)); context.lineTo(centerX, baseY + gridPx); context.stroke();
   context.beginPath(); context.moveTo(centerX - (numCols * gridPx), baseY); context.lineTo(centerX + (numCols * gridPx), baseY); context.stroke();
 }
+
+// ── REMOÇÃO INTELIGENTE DE FUNDO ──
+function processBackgroundRemoval(imgSource) {
+  return new Promise((resolve) => {
+    const c = document.createElement('canvas');
+    c.width = imgSource.naturalWidth;
+    c.height = imgSource.naturalHeight;
+    const tCtx = c.getContext('2d', { willReadFrequently: true });
+    tCtx.drawImage(imgSource, 0, 0);
+
+    const imgData = tCtx.getImageData(0, 0, c.width, c.height);
+    const data = imgData.data;
+
+    const bgR = data[0], bgG = data[1], bgB = data[2];
+    const tolerance = 45; 
+
+    for (let i = 0; i < data.length; i += 4) {
+      const r = data[i], g = data[i+1], b = data[i+2], a = data[i+3];
+      if (a === 0) continue;
+
+      const dist = Math.sqrt((r-bgR)**2 + (g-bgG)**2 + (b-bgB)**2);
+
+      if (dist < tolerance) {
+        data[i+3] = 0; 
+      } else if (dist < tolerance + 20) {
+        data[i+3] = Math.floor(255 * ((dist - tolerance) / 20));
+      }
+    }
+    tCtx.putImageData(imgData, 0, 0);
+    
+    const newI = new Image();
+    newI.onload = () => resolve(newI);
+    newI.src = c.toDataURL();
+  });
+}
+
+magicBtn.addEventListener('click', async function() {
+  if (!originalImg) return;
+  
+  if (isBgRemoved) {
+    isBgRemoved = false;
+    activeImg = originalImg;
+    this.classList.remove('active');
+  } else {
+    this.classList.add('active'); 
+    await new Promise(r => setTimeout(r, 20)); // Delay para permitir atualizar a UI
+    if (!processedImg) {
+      processedImg = await processBackgroundRemoval(originalImg);
+    }
+    isBgRemoved = true;
+    activeImg = processedImg;
+  }
+});
+
+// ── GESTÃO DE ARRASTAR E SOLTAR (INTERAÇÃO AR) ──
+function getPoint(e) {
+  if (e.touches) return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+  return { x: e.clientX, y: e.clientY };
+}
+
+canvas.addEventListener('pointerdown', e => {
+  if (!activeImg || isPlanView) return;
+  dragging = true;
+  const p = getPoint(e);
+  dragStart = { x: p.x - pos.x, y: p.y - pos.y };
+  canvas.setPointerCapture(e.pointerId);
+});
+canvas.addEventListener('pointermove', e => {
+  if (!dragging || isPlanView) return;
+  const p = getPoint(e);
+  pos.x = p.x - dragStart.x;
+  pos.y = p.y - dragStart.y;
+});
+canvas.addEventListener('pointerup', () => { dragging = false; });
+canvas.addEventListener('pointercancel', () => { dragging = false; });
+
+// Pinch-to-zoom
+let lastDist = 0;
+canvas.addEventListener('touchstart', e => {
+  if (e.touches.length === 2 && !isPlanView) {
+    lastDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+  }
+}, { passive: true });
+canvas.addEventListener('touchmove', e => {
+  if (e.touches.length === 2 && !isPlanView) {
+    const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+    const delta = dist / lastDist;
+    scale = Math.max(0.05, Math.min(5, scale * delta));
+    
+    const pct = Math.round(scale * 100);
+    scaleSlider.value = Math.min(pct, 300);
+    document.getElementById('scale-val').textContent = pct + '%';
+    
+    lastDist = dist;
+    e.preventDefault();
+  }
+}, { passive: false });
 
 // ── EVENTOS DE UI ──
 document.getElementById('file-input').addEventListener('change', e => {
@@ -373,9 +515,25 @@ document.getElementById('file-input').addEventListener('change', e => {
     const img = new Image();
     img.onload = () => {
       originalImg = img;
+      activeImg = img;
+      processedImg = null;
+      isBgRemoved = false;
+      magicBtn.classList.remove('active');
+      
+      pos.x = canvas.width / 2;
+      pos.y = canvas.height / 2;
+      
+      const maxW = canvas.width * 0.6;
+      scale = Math.min(maxW / img.naturalWidth, 1);
+      scaleSlider.value = Math.round(scale * 100);
+      document.getElementById('scale-val').textContent = Math.round(scale * 100) + '%';
+      
       document.getElementById('upload-screen').classList.add('hidden');
       document.getElementById('bottom-panel').classList.remove('hidden');
       document.getElementById('top-bar').classList.remove('hidden');
+      
+      hintEl.style.opacity = '1';
+      setTimeout(() => { hintEl.style.opacity = '0'; }, 4000);
     };
     img.src = ev.target.result;
   };
@@ -383,6 +541,8 @@ document.getElementById('file-input').addEventListener('change', e => {
 });
 
 // Update Sliders
+scaleSlider.addEventListener('input', e => { scale = e.target.value / 100; document.getElementById('scale-val').textContent = e.target.value + '%'; });
+rotSlider.addEventListener('input', e => { rotation = parseInt(e.target.value); document.getElementById('rot-val').textContent = e.target.value + '°'; });
 eyeSlider.addEventListener('input', e => { h_eye = parseFloat(e.target.value); document.getElementById('eye-val').textContent = h_eye.toFixed(2) + ' m'; });
 distSlider.addEventListener('input', e => { d_dist = parseFloat(e.target.value); document.getElementById('dist-val').textContent = d_dist.toFixed(2) + ' m'; });
 objSlider.addEventListener('input', e => { h_obj = parseFloat(e.target.value); document.getElementById('obj-val').textContent = h_obj.toFixed(2) + ' m'; });
@@ -390,10 +550,12 @@ objSlider.addEventListener('input', e => { h_obj = parseFloat(e.target.value); d
 previewBtn.addEventListener('click', () => {
   isPlanView = !isPlanView;
   if (isPlanView) {
+    video.style.opacity = '0'; 
     previewBtn.classList.add('active');
     camLabel.textContent = 'PLANTA DE CHÃO';
     camLabel.style.background = '#0066ff';
   } else {
+    video.style.opacity = '1'; 
     previewBtn.classList.remove('active');
     camLabel.textContent = 'VISTA DO ARTISTA';
     camLabel.style.background = 'rgba(255,80,80,0.85)';
@@ -402,32 +564,29 @@ previewBtn.addEventListener('click', () => {
 
 // ── EXPORTAR MOLDE EM ALTA RESOLUÇÃO ──
 document.getElementById('snap-btn').addEventListener('click', () => {
-  if (!originalImg) return;
+  if (!activeImg) return;
 
   const maxZ = d_dist * (h_obj / (h_eye - h_obj));
   const maxW_factor = h_eye / (h_eye - h_obj);
-  const w_obj = h_obj * (originalImg.naturalWidth / originalImg.naturalHeight);
+  const w_obj = h_obj * (activeImg.naturalWidth / activeImg.naturalHeight);
   const maxW = w_obj * maxW_factor;
 
-  // Resolução de Exportação: 300 pixéis por cada metro real
   const pixelsPerMeter = 300; 
-  const paddingMeters = 1.5; // Margem para legibilidade
+  const paddingMeters = 1.5;
 
   const expCanvas = document.createElement('canvas');
   expCanvas.width = Math.ceil((maxW + paddingMeters) * pixelsPerMeter);
   expCanvas.height = Math.ceil((maxZ + paddingMeters) * pixelsPerMeter);
   const eCtx = expCanvas.getContext('2d');
 
-  // Desenhar a Planta Real do Chão
   drawTopDownPlan(eCtx, expCanvas.width, expCanvas.height, maxZ, maxW, w_obj, true);
 
-  // Download
   const link = document.createElement('a');
   link.download = `molde_chao_${maxZ.toFixed(1)}m_por_${maxW.toFixed(1)}m.png`;
   link.href = expCanvas.toDataURL('image/png');
   link.click();
 
-  alert(`Molde exportado com sucesso!\nTamanho físico calculado: ${maxZ.toFixed(2)}m de profundidade.\n\nNa imagem exportada, cada quadrado da grelha representa exatos 50x50 cm no chão.`);
+  alert(`Molde exportado com sucesso!\n\nUse a grelha de transferência:\nCada quadrado no papel representa exatamente 50x50 cm no chão real.`);
 });
 
 requestAnimationFrame(loop);
